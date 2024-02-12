@@ -1,0 +1,15 @@
+CaseID,Activity,Timestamp
+c1,Make booking,20200422T0503
+c1,Submit payment details,20200422T0504
+c1,Submit proof of enrollment,20200422T0505
+c1,Await contract,20200422T0506
+c1,Countersign,20200422T0507
+c2,Make booking,20200422T0503
+c2,Submit proof of enrollment,20200422T0504
+c2,Submit payment details,20200422T0505
+c2,Await contract,20200422T0506
+c2,Countersign,20200422T0507
+c3,Make booking,20200422T0503
+c3,Use previous data,20200422T0504
+c3,Await contract,20200422T0506
+c3,Countersign,20200422T0507
