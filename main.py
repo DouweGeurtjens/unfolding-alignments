@@ -1,6 +1,7 @@
 import pandas as pd
 import pm4py
 from copy import deepcopy
+from itertools import product
 
 # TODO MAJOR: Currently, corresponding_places and corresponding_transitions just return a list of places/transitions
 # This is not correct, because a bp can have multiple places pointing to the same underlying petri-net node
@@ -113,65 +114,6 @@ class BranchingProcess():
 
         self.bp.add_place_with_id(new_place)
 
-    # def extend(self):
-    #     # Extensions always happen from a ending node right?
-    #     # Ending nodes should always be places too?
-    #     new_ending_nodes = []
-    #     for en in self.ending_nodes:
-    #         # Find corresponding node in the original net
-    #         for n in self.net.net.places:
-    #             if en.properties["origin_node"] == n:
-    #                 node_in_net = n
-    #                 break
-    #         # node_in_net = self.net.net.places.get(en.properties["origin_node"])
-
-    #         # Find a transition of which the corresponding node is in the preset
-    #         # Is this the same as finding the postset of the corresponding node? I think so
-    #         postset = self.net.get_postset(node_in_net)
-
-    #         # If our postset is empty we can skip this iteration
-    #         if len(postset) == 0:
-    #             continue
-
-    #         # If we find the transition, we need to gets its preset and connect those places
-    #         # If there is more than one transition in the postset we need to consider all those transitions
-    #         for t in postset:
-    #             preset = self.net.get_preset(t)
-    #             # Get the equivalent places in the branching process
-    #             # TODO check if we can optimize this
-    #             bp_places = []
-    #             for place in preset:
-    #                 for bp_place in self.bp.net.places:
-    #                     if bp_place.properties["origin_node"] == place:
-    #                         bp_places.append(bp_place)
-
-    #             # add an and connect the transition
-
-    #             added_t = self.add_node(bp_places, t)
-    #             # Check if the added transition has a local configuration
-    #             # If not, revert the addition
-
-    #             # Add the postset of the transition to the branching process if we added the transition
-    #             postset_t = self.net.get_postset(t)
-
-    #             # TODO will this work if a place has two input transitions? Then we'd end up adding duplicate places?
-    #             for place_2 in postset_t:
-    #                 added_place = self.add_node([added_t], place_2)
-    #                 # Add the added places to the new_ending nodes
-    #                 new_ending_nodes.append(added_place)
-
-    #             # Remove any nodes from self.ending_nodes that are now no longer ending nodes
-    #             # aka the nodes in the preset of the transition we just added
-    #             # this will update the loop, that's okay (in fact we have to, otherwise we will end up with duplicate transitions etc)
-    #             for place_3 in bp_places:
-    #                 try:
-    #                     self.ending_nodes.remove(place_3)
-    #                 except:
-    #                     print("failed to rm")
-
-    #     # Update the ending nodes
-    #     self.ending_nodes = new_ending_nodes
-
     def get_possible_extensions(
         self,
         bp_places: list[pm4py.PetriNet.Place] = None
@@ -196,8 +138,48 @@ class BranchingProcess():
         for transition in self.underlying_net.net.transitions:
             preset_places = self.underlying_net.get_preset(transition)
 
-            # Get places in the BP that correspond to the preset of the transition in the underlying net
-            corresponding_places = self.get_corresponding_places(preset_places)
+            # Get sets of places in the BP that correspond to the preset of the transition in the underlying net
+            corresponding_places_combinations = self.get_corresponding_places_combinations(
+                preset_places)
+            
+            # For each set of corresponding places, check if the combination of corresponding places->transition is in the BP already
+            # If it is, it's not an extension. If not, it is a possible extension
+            for cpc in corresponding_places_combinations:
+                # Get the bp_transitions that correspond to the input transition corresponding to a place
+                matching = {}
+                for cp in cpc:
+                    matching[cp] = False
+                    postset_transitions = self.bp.get_postset(
+                        corresponding_place)
+                    for bp_transtion in postset_transitions:
+                        if bp_transition.properties["origin_id"] == transition.properties["id"]:
+                            matching[cp] = True    
+                
+                # If all places remain unmatched, then the cpc->transition combination doesn't exist yet
+                no_matches = True
+                for _,v in matching:
+                    if v:
+                        no_matches = False
+
+                # For every bp_transition we want to know if it corresponds to our input transition (the one we are trying to extend)
+                for bp_transition in bp_transitions_to_check:
+                    # This cpc->transition combination is already present
+                    if bp_transition.properties["origin_id"] == transition.properties["id"]:
+
+                    for cp in cpc:
+                        for arc in cp.out_arcs:
+                            # It's already there, this combination is not an extension
+                            if arc.target.properties["origin_id"] == transition.properties["id"]:
+                                pass
+
+            # For each possible extension, compute the downward closure
+            # If we can't, it's not an extension
+
+            # Then, check each downward closure for conflict-freeness
+            # If it isn't, it's not an extension
+
+            # Then, if we have anything remaining, it's an extension
+            # We extend one at a time
 
             # We found a corresponding transition, this could be an extension
             # TODO question: what if we find multiple corresponding places?
@@ -246,7 +228,8 @@ class BranchingProcess():
         preset_places = self.underlying_net.get_preset(possible_extension)
 
         # Get places in BP corresponding to transition preset so we know where to put the arcs
-        corresponding_places = self.get_corresponding_places(preset_places)
+        corresponding_places = self.get_corresponding_places_combinations(
+            preset_places)
 
         new_properties = {}
         new_properties["origin_id"] = possible_extension.properties["id"]
@@ -296,39 +279,43 @@ class BranchingProcess():
 
         return True
 
-    def get_corresponding_places(
+    def get_corresponding_places_combinations(
             self,
             net_places: list[pm4py.PetriNet.Place],
-            bp: ExtendedPetriNet = None) -> list[pm4py.PetriNet.Place]:
+            bp: ExtendedPetriNet = None):
         if bp is None:
             bp = self.bp
 
-        bp_places = []
+        bp_places_combinations = []
 
         for net_place in net_places:
+            place_list = []
             for bp_place in bp.net.places:
                 if net_place.properties["id"] == bp_place.properties[
                         "origin_id"]:
-                    bp_places.append(bp_place)
+                    place_list.append(bp_place)
+            bp_places_combinations.append(place_list)
 
-        return bp_places
+        return product(*bp_places_combinations)
 
-    def get_corresponding_transitions(
+    def get_corresponding_transitions_combinations(
             self,
             net_transitions: list[pm4py.PetriNet.Transition],
-            bp: ExtendedPetriNet = None) -> list[pm4py.PetriNet.Transition]:
+            bp: ExtendedPetriNet = None):
         if bp is None:
             bp = self.bp
 
-        bp_transitions = []
+        bp_transitions_combinations = []
 
         for net_transition in net_transitions:
+            transition_list = []
             for bp_transition in bp.net.transitions:
                 if net_transition.properties["id"] == bp_transition.properties[
                         "origin_id"]:
-                    bp_transitions.append(bp_transition)
+                    transition_list.append(bp_transition)
+            bp_transitions_combinations.append(transition_list)
 
-        return bp_transitions
+        return product(*bp_transitions_combinations)
 
     def build_downward_closure(self, transition):
         # Downward closure rules, aka can we fire from  the IM to the transition to be added
@@ -386,15 +373,6 @@ class BranchingProcess():
             for p in pr:
                 self._build_downward_closure_helper(p, downward_closure)
 
-    # def _build_downward_closure_helper2(self, transition, bp,
-    #                                     downward_closure):
-    #     if bp is None:
-    #         bp = self.bp
-    #     bpps = bp.get_preset(transition)
-    #     for bpp in bpps:
-    #         downward_closure.append(bpp)
-    #         self._build_downward_closure_helper(bpp, bp, downward_closure)
-
     def has_local_config(
         self,
         transition: pm4py.PetriNet.Transition,
@@ -421,49 +399,6 @@ class BranchingProcess():
                         return False
 
         return True
-
-    def add_node(
-        self, preset: list[pm4py.PetriNet.Place | pm4py.PetriNet.Transition],
-        target_node: pm4py.PetriNet.Place
-        | pm4py.PetriNet.Transition
-    ) -> pm4py.PetriNet.Place | pm4py.PetriNet.Transition:
-        new_properties = {}
-        new_properties["origin_node_id"] = target_node["id"]
-
-        # TODO The name of the new node should be unique, now it is not
-        if type(target_node) == pm4py.PetriNet.Place:
-            new_target_node = pm4py.PetriNet.Place(target_node.name,
-                                                   properties=new_properties)
-        if type(target_node) == pm4py.PetriNet.Transition:
-            new_target_node = pm4py.PetriNet.Transition(
-                target_node.name, properties=new_properties)
-
-        # Create a new_arcs
-        # TODO put a weight on this based on whether its a synchronous move or not
-        # TODO put a weight on this based on whether or not the object synchronise
-        for preset_node in preset:
-            new_arc = pm4py.PetriNet.Arc(preset_node, new_target_node)
-
-            # Add an arc to the source_node out_arcs
-            preset_node.out_arcs.add(new_arc)
-            # Add an arc to the new_target_node in_arcs
-            new_target_node.in_arcs.add(new_arc)
-            # Add the arc to the branching process arcs
-            self.bp.net.arcs.add(new_arc)
-
-        # Add to either transitions or places depending on the type of the new_target_node
-        if type(target_node) == pm4py.PetriNet.Place:
-            self.bp.net.places.add(new_target_node)
-        if type(target_node) == pm4py.PetriNet.Transition:
-            self.bp.net.transitions.add(new_target_node)
-
-        # # We just extended the source_node, so it's no longer an ending node
-        # self.ending_nodes.remove(source_node)
-
-        # # The node we just added is a new ending node
-        # self.ending_nodes.add(new_target_node)
-
-        return new_target_node
 
 
 def initialize_unfolding(net: ExtendedPetriNet) -> BranchingProcess:
