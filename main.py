@@ -338,8 +338,8 @@ class BranchingProcess():
         #   This means we have to follow both  branches now to continue our downward closure
         # Because a place can only input from one transition in the BP, we are not concerned with what happens when getting the place preset
         # This means we can just recursively get the preset starting at a transition until  we reach the IM
-        # TODO Question: is it true that the preset of a place in a BP will only ever be one transition?'
-        # TODO Question: is it true that any given transition in the BP will only have one configuration?
+        # TODO Question: is it true that the preset of a place in a BP will only ever be one transition? YES
+        # TODO Question: is it true that any given transition in the BP will only have one configuration? YES
         downward_closure = {transition}
 
         # TODO check this?
