@@ -1,5 +1,6 @@
+from copy import deepcopy
 import pandas as pd
-from pm4py import PetriNet, Marking, discover_petri_net_inductive
+from pm4py import PetriNet, Marking, discover_petri_net_inductive, view_petri_net
 
 # TODO check wherever lists are used if sets are possible
 # TODO ALWAYS REMEMBER TO KEEP IN MIND THAT CONDITIONS/EVENTS ARE NOT DIRECTLY COMPARABLE TO PLACES/TRANSITIONS
@@ -32,11 +33,11 @@ IDGEN = IDGenerator()
 # A place in a branching process
 class Condition:
     # TODO overload __hash__ if needed
-    def __init__(self, net_place, input_event: Event | None = None) -> None:
+    def __init__(self, net_place_id: int, input_event=None) -> None:
         # A condition has a single input event
         self.input_event = input_event
         # The place in the PetriNet model this condition refers to
-        self.net_place = net_place
+        self.net_place_id = net_place_id
         self.id = IDGEN.generate_id()
 
     def __eq__(self, other: object) -> bool:
@@ -44,16 +45,19 @@ class Condition:
             return self.id == other.id
         return NotImplemented
 
+    def __hash__(self) -> int:
+        return self.id
+
 
 # A transition in a branching process
 class Event:
     # TODO overload __hash__ if needed
-    def __init__(self, net_transition: PetriNet.Transition,
+    def __init__(self, net_transition_id: int,
                  input_conditions: set[Condition]) -> None:
         # An event can have multiple input conditions
         self.input_conditions = input_conditions
         # The transition in the PetriNet model this event refers to
-        self.net_transition = net_transition
+        self.net_transition_id = net_transition_id
         self.id = IDGEN.generate_id()
 
     def __eq__(self, other: object) -> bool:
@@ -61,10 +65,13 @@ class Event:
             return self.id == other.id
         return NotImplemented
 
+    def __hash__(self) -> int:
+        return self.id
+
 
 class LightweightConfiguration:
 
-    def __init__(self, fm: list[Condition]) -> None:
+    def __init__(self, fm: set[Condition]) -> None:
         # TODO Check this IM stuff?
         # self.im = []
         self.fm = fm
@@ -72,9 +79,9 @@ class LightweightConfiguration:
 
 class Configuration(LightweightConfiguration):
 
-    def __init__(self, fm: list[Condition]) -> None:
+    def __init__(self, fm: set[Condition]) -> None:
         super().__init__(fm)
-        self.im: list[Condition] = []
+        self.im: set[Condition] = set()
         self.nodes: set[Condition | Event] = set()
 
 
@@ -89,6 +96,7 @@ class BranchingProcess:
         #
         # TODO we need to keep track of configurations, so whenver we branch (1 place enables two transitions?) we should store both events as the endpoint of our configuration
         self.configurations: set[LightweightConfiguration] = set()
+        self.finished_configurations: set[LightweightConfiguration] = set()
 
         # A branching process has an underlying PetriNet
         self.underlying_net: PetriNet = net
@@ -98,10 +106,10 @@ class BranchingProcess:
         self.im = []
 
     def initialize_from_initial_marking(self, im: Marking):
-        configuration_fm = []
+        configuration_fm = set()
         for place in im:
             condition = Condition(place.properties["id"])
-            configuration_fm.append(condition)
+            configuration_fm.add(condition)
             self.nodes.add(condition)
             self.im.append(condition)
 
@@ -119,82 +127,118 @@ class BranchingProcess:
         net_marking = self.bp_marking_to_net_marking(configuration.fm)
 
         enabled_transitions = get_enabled_net_transitions(net_marking)
+        if len(enabled_transitions) == 0:
+            print("Finished configuration")
+            self.finished_configurations.add(configuration)
 
         # Check if any transitions would cause an OR branch to occur
         or_branches = check_or_branch(enabled_transitions, net_marking)
 
         # TODO Fix this later
-        for place, transitions in or_branches.items():
+        new_configurations = []
+        for transition in or_branches:
             # TODO Do some special stuff here
             # TODO Make a configuration for all place->transition combinations here, then fire those transitions
             # TODO Then remove the transitions from enabled_transitions (they have already been fired)
-            pass
 
+            # Make a duplicate of our current configuration
+            new_fm = deepcopy(configuration.fm)
+            new_configuration = LightweightConfiguration(new_fm)
+            # Add it to the list of new configurations
+            new_configurations.append((new_configuration, transition))
+            # In our original configuration we don't want to fire this transition again
+            enabled_transitions.remove(transition)
+
+        # Fire all new configurations
+        # TODO Store only the  configurations that have  a unique  final marking after firing so we don't store duplicate configurations
+        # TODO  this  is slightly inefficient because there are possibly more enabled  transitions in these  new  configurations
+        for configuration2, transition in new_configurations:
+            nodes_to_add = self.fire_lightweight_configuration(
+                configuration2, transition)
+            self.nodes = self.nodes.union(nodes_to_add)
+            self.configurations.add(configuration2)
+
+        # Fire all remaining transitions in the  original  configuration that are not mutually exclusive
         for enabled_transition in enabled_transitions:
             # TODO When a transition is enabled, we want to "fire" it on the configuration
-            pass
+            nodes_to_add = self.fire_lightweight_configuration(
+                configuration, enabled_transition)
+            self.nodes = self.nodes.union(nodes_to_add)
+            # Re-add the configuration we just fired
+            self.configurations.add(configuration)
 
-    def get_configuration_from_marking(
-            self, marking: list[Condition]) -> Configuration:
+    def get_full_configuration_from_marking(
+            self, marking: set[Condition]) -> Configuration:
         configuration = Configuration(marking)
 
         for condition in marking:
-            self._get_configuration_from_marking_helper(
+            self._get_full_configuration_from_marking_helper(
                 condition, configuration)
 
         return configuration
 
-    def _get_configuration_from_marking_helper(self, condition: Condition,
-                                               configuration: Configuration):
+    def _get_full_configuration_from_marking_helper(
+            self, condition: Condition, configuration: Configuration):
         configuration.nodes.add(condition)
         if condition.input_event is None:
-            configuration.im.append(condition)
+            configuration.im.add(condition)
         else:
             configuration.nodes.add(condition.input_event)
 
             for c in condition.input_event.input_conditions:
-                self._get_configuration_from_marking_helper(c, configuration)
+                self._get_full_configuration_from_marking_helper(
+                    c, configuration)
 
     def bp_marking_to_net_marking(
-            self, marking: list[Condition]) -> list[PetriNet.Place]:
+            self, marking: set[Condition]) -> list[PetriNet.Place]:
         # Given a marking in the branching process, find the corresponding marking in the underlying net
         ret = []
 
         for condition in marking:
-            ret.append(condition.net_place)
+            ret.append(
+                get_net_node_by_id(self.underlying_net,
+                                   condition.net_place_id))
 
         return ret
 
-    # TODO This currently modifies the branching process, maybe make this more explicit?
-    def fire_configuration(self, configuration: LightweightConfiguration
-                           | Configuration, transition: PetriNet.Transition):
+    # Fire a configuration without updating the branching process
+    def fire_lightweight_configuration(
+            self, configuration: LightweightConfiguration,
+            transition: PetriNet.Transition) -> list[Event | Condition]:
+
+        # Return the events and conditions that should be added to the BP later
+        ret = []
         # For each condition in the configuration's final makring, check if it is in the preset
         # If it is, it's an input condition for our new event, and we can "consume" the token
-        preset = get_preset(transition)
+        preset_ids = get_preset_ids(transition)
         input_conditions = set()
         for condition in configuration.fm:
-            if condition.net_place in preset:
+            if condition.net_place_id in preset_ids:
                 # Add this condition as an input condition for our new event
                 input_conditions.add(condition)
-                # Consume the token
-                configuration.fm.remove(condition)
 
+        # Consume the tokens at once so we don't adjust our loop condition
+        configuration.fm = configuration.fm.difference(input_conditions)
         # Create the new event
-        event = Event(transition, input_conditions)
-        self.nodes.add(event)
+        new_event = Event(transition.properties["id"], input_conditions)
+        ret.append(new_event)
+        # self.nodes.add(event)
 
         # Add the postset to the configuration and the branching process
-        postset = get_postset(transition.net_transition)
-        for place in postset:
-            new_condition = Condition(place, event)
-            configuration.fm.append(new_condition)
-            self.nodes.add(condition)
+        postset_ids = get_postset_ids(transition)
+        for place_id in postset_ids:
+            new_condition = Condition(place_id, new_event)
+            configuration.fm.add(new_condition)
+            ret.append(new_condition)
+            # self.nodes.add(new_condition)
+
+        return ret
 
 
-def check_or_branch(
-    enabled_transitions: set[PetriNet.Transition], marking: set[PetriNet.Place]
-) -> dict[PetriNet.Place, set[PetriNet.Transition]]:
-    ret = {}
+def check_or_branch(enabled_transitions: set[PetriNet.Transition],
+                    marking: set[PetriNet.Place]) -> set[PetriNet.Transition]:
+    ret = set()
+    # A set of transitions is mutually excluse if: for each transition there is one common input place
 
     for place in marking:
         postset = get_postset(place)
@@ -203,7 +247,7 @@ def check_or_branch(
             # We note down which transitions by checking the enabled_transtions and marking each one that is present in the postset of the place
             mutually_exclusive_transitions = enabled_transitions.intersection(
                 postset)
-            ret[place] = mutually_exclusive_transitions
+            ret = ret.union(mutually_exclusive_transitions)
 
     return ret
 
@@ -245,6 +289,17 @@ def get_postset(
     return ret
 
 
+def get_postset_ids(
+    node: PetriNet.Place | PetriNet.Transition
+) -> set[PetriNet.Place | PetriNet.Transition]:
+    ret = set()
+
+    for arc in node.out_arcs:
+        ret.add(arc.target.properties["id"])
+
+    return ret
+
+
 def get_preset(
     node: PetriNet.Place | PetriNet.Transition
 ) -> set[PetriNet.Place | PetriNet.Transition]:
@@ -252,6 +307,17 @@ def get_preset(
 
     for arc in node.in_arcs:
         ret.add(arc.source)
+
+    return ret
+
+
+def get_preset_ids(
+    node: PetriNet.Place | PetriNet.Transition
+) -> set[PetriNet.Place | PetriNet.Transition]:
+    ret = set()
+
+    for arc in node.in_arcs:
+        ret.add(arc.source.properties["id"])
 
     return ret
 
@@ -288,12 +354,32 @@ def build_petri_net(filepath: str) -> tuple[PetriNet, Marking, Marking]:
     return net, im, fm
 
 
+def get_net_node_by_id(net: PetriNet,
+                       node_id: PetriNet.Place | PetriNet.Transition):
+    for p in net.places:
+        if p.properties["id"] == node_id:
+            return p
+    for t in net.transitions:
+        if t.properties["id"] == node_id:
+            return t
+    raise Exception
+
+
 def main():
     net, im, fm = build_petri_net("testnet_no_cycles.csv")
+    view_petri_net(net)
     extend_net(net)
     bp = BranchingProcess(net)
     bp.initialize_from_initial_marking(im)
 
+    while len(bp.configurations) != 0:
+        bp.extend_naive()
+
+    for configuration in bp.finished_configurations:
+        full_conf = bp.get_full_configuration_from_marking(configuration.fm)
+        print(full_conf)
+
 
 if __name__ == "__main__":
     main()
+# TODO concurrent joins don't seem to fire properly?
