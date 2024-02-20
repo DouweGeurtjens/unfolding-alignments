@@ -76,6 +76,12 @@ class LightweightConfiguration:
         # self.im = []
         self.fm = fm
 
+    # TODO this doesn't hold behaviourally I think, only for reachability
+    # def __eq__(self, other: object) -> bool:
+    #     if isinstance(other, (LightweightConfiguration, Configuration)):
+    #         return self.fm == other.fm
+    #     return NotImplemented
+
 
 class Configuration(LightweightConfiguration):
 
@@ -83,6 +89,10 @@ class Configuration(LightweightConfiguration):
         super().__init__(fm)
         self.im: set[Condition] = set()
         self.nodes: set[Condition | Event] = set()
+
+    # TODO unsure about this
+    # def __eq__(self, other: object) -> bool:
+    #     return super().__eq__(other)
 
 
 class BranchingProcess:
@@ -117,10 +127,10 @@ class BranchingProcess:
         self.configurations.add(configuration)
 
     def extend_naive(self):
-        # Start from the configuration endpoints
-        # Take an endpoint (for now randomly, later best first approach)
+        # TODO cycles currently generate infinite configurations, fix this!
+        # Start from the configuration final markings (for now randomly, later best first approach)
         # Find the enabled transitions
-        # If an OR branch would occur, do each branch and store the configuration
+        # If an OR branch would occur, make a new configuration for each branch and store the configuration
 
         configuration = self.configurations.pop()
 
@@ -134,39 +144,44 @@ class BranchingProcess:
         # Check if any transitions would cause an OR branch to occur
         or_branches = check_or_branch(enabled_transitions, net_marking)
 
-        # TODO Fix this later
+        # Use a list instead of a set because we will create duplicate configurations
+        # This is okay, because after firing them, they will no longer be duplicates
         new_configurations = []
         for transition in or_branches:
             # TODO Do some special stuff here
             # TODO Make a configuration for all place->transition combinations here, then fire those transitions
             # TODO Then remove the transitions from enabled_transitions (they have already been fired)
 
-            # Make a duplicate of our current configuration
+            # Make a duplicate of our current configuration's marking
             new_fm = deepcopy(configuration.fm)
+
+            # Create a new configuration with the marking
             new_configuration = LightweightConfiguration(new_fm)
+
             # Add it to the list of new configurations
             new_configurations.append((new_configuration, transition))
-            # In our original configuration we don't want to fire this transition again
+
+            # In our original configuration we don't want to fire this transition again, so we remove it from the enabled_transitiosn set
             enabled_transitions.remove(transition)
 
-        # Fire all new configurations
+        # Fire all mutually exclusive transitions in our new configurations and add them to the branching process
         # TODO Store only the  configurations that have  a unique  final marking after firing so we don't store duplicate configurations
-        # TODO  this  is slightly inefficient because there are possibly more enabled  transitions in these  new  configurations
+        # TODO Actually can we do the above? We might have behviourally unique configurations with the same marking?
         for configuration2, transition in new_configurations:
+            # TODO This is slightly inefficient because there are possibly more enabled  transitions in these  new  configurations
             nodes_to_add = self.fire_lightweight_configuration(
                 configuration2, transition)
             self.nodes = self.nodes.union(nodes_to_add)
             self.configurations.add(configuration2)
 
-        # Fire all remaining transitions in the  original  configuration that are not mutually exclusive
+        # Fire all remaining transitions in the original popped configuration that are not mutually exclusive, then add it to the branching process again
         for enabled_transition in enabled_transitions:
-            # TODO When a transition is enabled, we want to "fire" it on the configuration
             nodes_to_add = self.fire_lightweight_configuration(
                 configuration, enabled_transition)
             self.nodes = self.nodes.union(nodes_to_add)
-            # Re-add the configuration we just fired
             self.configurations.add(configuration)
 
+    # TODO move this to configuration class?
     def get_full_configuration_from_marking(
             self, marking: set[Condition]) -> Configuration:
         configuration = Configuration(marking)
@@ -190,12 +205,12 @@ class BranchingProcess:
                     c, configuration)
 
     def bp_marking_to_net_marking(
-            self, marking: set[Condition]) -> list[PetriNet.Place]:
+            self, marking: set[Condition]) -> set[PetriNet.Place]:
         # Given a marking in the branching process, find the corresponding marking in the underlying net
-        ret = []
+        ret = set()
 
         for condition in marking:
-            ret.append(
+            ret.add(
                 get_net_node_by_id(self.underlying_net,
                                    condition.net_place_id))
 
@@ -204,10 +219,10 @@ class BranchingProcess:
     # Fire a configuration without updating the branching process
     def fire_lightweight_configuration(
             self, configuration: LightweightConfiguration,
-            transition: PetriNet.Transition) -> list[Event | Condition]:
+            transition: PetriNet.Transition) -> set[Event | Condition]:
 
         # Return the events and conditions that should be added to the BP later
-        ret = []
+        ret = set()
         # For each condition in the configuration's final makring, check if it is in the preset
         # If it is, it's an input condition for our new event, and we can "consume" the token
         preset_ids = get_preset_ids(transition)
@@ -221,16 +236,87 @@ class BranchingProcess:
         configuration.fm = configuration.fm.difference(input_conditions)
         # Create the new event
         new_event = Event(transition.properties["id"], input_conditions)
-        ret.append(new_event)
-        # self.nodes.add(event)
+        ret.add(new_event)
 
         # Add the postset to the configuration and the branching process
         postset_ids = get_postset_ids(transition)
         for place_id in postset_ids:
             new_condition = Condition(place_id, new_event)
             configuration.fm.add(new_condition)
-            ret.append(new_condition)
-            # self.nodes.add(new_condition)
+            ret.add(new_condition)
+
+        return ret
+
+    def convert_configuration_to_net(self,
+                                     configuration: Configuration) -> PetriNet:
+        ret = PetriNet()
+
+        for node in configuration.nodes:
+            if isinstance(node, Event):
+                net_transition = get_net_node_by_id(self.underlying_net,
+                                                    node.net_transition_id)
+                new_transition = PetriNet.Transition(node.id,
+                                                     net_transition.label)
+
+                for input_condition in node.input_conditions:
+                    new_place = PetriNet.Place(input_condition.id)
+                    new_arc = PetriNet.Arc(new_place, new_transition)
+
+                    ret.places.add(new_place)
+                    ret.arcs.add(new_arc)
+
+                ret.transitions.add(new_transition)
+
+        for node in configuration.nodes:
+            if isinstance(node, Condition):
+                if node.input_event:
+                    target = None
+                    source = None
+                    for p in ret.places:
+                        if p.name == node.id:
+                            target = p
+                    for t in ret.transitions:
+                        if t.name == node.input_event.id:
+                            source = t
+                    if target and source:
+                        new_arc = PetriNet.Arc(source, target)
+                        ret.arcs.add(new_arc)
+
+            # if isinstance(node, Condition):
+            #     new_place = PetriNet.Place(node.id)
+            #     ret.places.add(new_place)
+            #     if node.input_event:
+            #         net_transition = get_net_node_by_id(
+            #             self.underlying_net,
+            #             node.input_event.net_transition_id)
+            #         new_transition = PetriNet.Transition(
+            #             node.input_event.id, net_transition.label)
+            #         new_arc = PetriNet.Arc(new_transition, new_place)
+
+            #         ret.transitions.add(new_transition)
+            #         ret.arcs.add(new_arc)
+
+        # Fix arcs
+        for arc in ret.arcs:
+            arc.source.out_arcs.add(arc)
+            arc.target.in_arcs.add(arc)
+
+        # # Fix duplicate transitions
+        # transitions_to_remove = set()
+        # for t in ret.transitions:
+        #     for t2 in ret.transitions:
+        #         if t.name == t2.name:
+        #             t.in_arcs.update(t2.in_arcs)
+        #             t.out_arcs.update(t2.out_arcs)
+        #             transitions_to_remove.add(t2)
+
+        # # Fix duplicate places
+        # for p in ret.places:
+        #     for p2 in ret.places:
+        #         if p.name == p2.name:
+        #             p.in_arcs.update(p2.in_arcs)
+        #             p.out_arcs.update(p2.out_arcs)
+        #             ret.places.remove(p2)
 
         return ret
 
@@ -354,8 +440,9 @@ def build_petri_net(filepath: str) -> tuple[PetriNet, Marking, Marking]:
     return net, im, fm
 
 
-def get_net_node_by_id(net: PetriNet,
-                       node_id: PetriNet.Place | PetriNet.Transition):
+def get_net_node_by_id(
+    net: PetriNet, node_id: PetriNet.Place | PetriNet.Transition
+) -> PetriNet.Place | PetriNet.Transition:
     for p in net.places:
         if p.properties["id"] == node_id:
             return p
@@ -366,7 +453,7 @@ def get_net_node_by_id(net: PetriNet,
 
 
 def main():
-    net, im, fm = build_petri_net("testnet_no_cycles.csv")
+    net, im, _ = build_petri_net("testnet_no_cycles.csv")
     view_petri_net(net)
     extend_net(net)
     bp = BranchingProcess(net)
@@ -377,7 +464,24 @@ def main():
 
     for configuration in bp.finished_configurations:
         full_conf = bp.get_full_configuration_from_marking(configuration.fm)
-        print(full_conf)
+        new_net = bp.convert_configuration_to_net(full_conf)
+        view_petri_net(new_net)
+
+    net_cycles, im_cycles, _ = build_petri_net("testnet_cycles.csv")
+    view_petri_net(net_cycles)
+
+    extend_net(net_cycles)
+    bp_cyles = BranchingProcess(net_cycles)
+    bp_cyles.initialize_from_initial_marking(im_cycles)
+
+    while len(bp_cyles.finished_configurations) < 5:
+        bp_cyles.extend_naive()
+
+    for configuration in bp_cyles.finished_configurations:
+        full_conf = bp_cyles.get_full_configuration_from_marking(
+            configuration.fm)
+        new_net = bp_cyles.convert_configuration_to_net(full_conf)
+        view_petri_net(new_net)
 
 
 if __name__ == "__main__":
