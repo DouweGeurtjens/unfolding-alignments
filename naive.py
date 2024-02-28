@@ -64,6 +64,7 @@ class ExtendedNet(PetriNet):
     def check_or_branch(self, enabled_transition_ids: set[TransitionID],
                         marking: set[PlaceID]) -> set[TransitionID]:
         ret: set[TransitionID] = set()
+        # TODO rewrite this so it takes into account mutually exclusive PAIRS of transitions instead of one big set
         # A set of transitions is mutually excluse if: for each transition there is one common input place
 
         for place_id in marking:
@@ -214,6 +215,7 @@ class BranchingProcess:
         closed = []
         while len(open) > 0:
             p = heapq.heappop(open)
+            f = p[0]
             popped_configuration = p[2]
             net_marking_ids = self.bp_marking_to_net_marking_ids(
                 popped_configuration.fm)
@@ -223,9 +225,9 @@ class BranchingProcess:
                 net_marking_ids)
 
             if len(enabled_transition_ids) == 0:
-                print(f"Finished configuration with cost {p[0]}")
+                print(f"Finished configuration with cost {f}")
                 self.finished_configurations.add(popped_configuration)
-                continue
+                return
 
             # Check if any transitions would cause an OR branch to occur
             or_branches = self.underlying_net.check_or_branch(
@@ -257,39 +259,69 @@ class BranchingProcess:
             for _, transition_ids in configuration_transition_ids_pairs:
                 transition_ids.update(enabled_transition_ids)
 
-            # Now for the search part, we fire only the configuration with the lowest expected cost, then put everything on the queue
-            # TODO compute this cost properly, for now we just count the transitions
-            not_in_closed = False
-            has_enabled_transition = False
-            while not (not_in_closed and has_enabled_transition):
-                lowest_expected_cost_pair = min(
-                    configuration_transition_ids_pairs,
-                    key=lambda pair: len(pair[1]))
-                configuration_transition_ids_pairs.remove(
-                    lowest_expected_cost_pair)
-                not_in_closed = (lowest_expected_cost_pair[0].fm,
-                                 lowest_expected_cost_pair[1]) not in closed
-                has_enabled_transition = len(lowest_expected_cost_pair[1]) != 0
+            # Keep only new configurations with enabled transitions
+            configuration_transition_ids_pairs = [
+                pair for pair in configuration_transition_ids_pairs
+                if len(pair[1]) > 0
+            ]
 
+            # Now for the search part, we fire only the configuration with the lowest expected cost, then put everything on the queue
+
+            # Remove all items that are already in closed
+            already_in_closed = []
+            for pair in configuration_transition_ids_pairs:
+                if (pair[0].fm, pair[1]) in closed:
+                    already_in_closed.append(pair)
+
+            for pair in already_in_closed:
+                configuration_transition_ids_pairs.remove(pair)
+
+            lowest_expected_cost_pair = min(configuration_transition_ids_pairs,
+                                            key=lambda pair: len(pair[1]))
+
+            # lowest_expected_cost_pair = None
+            # for pair in configuration_transition_ids_pairs:
+            #     if not lowest_expected_cost_pair:
+            #         lowest_expected_cost_pair = pair
+            #     elif len(pair[1]) < len(lowest_expected_cost_pair[1]):
+            #         lowest_expected_cost_pair = pair
+
+            # while not not_in_closed:
+
+            # Update our closed list because we've already done this marking + transition combo
+            # TODO check if this actually works
             closed.append((lowest_expected_cost_pair[0].fm,
                            lowest_expected_cost_pair[1]))
+
+            # Remove it from the confgiuration_transition_ids_pairs so we don't accidentally add it again even though we already processed this one
+            configuration_transition_ids_pairs.remove(
+                lowest_expected_cost_pair)
+
+            # Fire all transitions
             for transition_id in lowest_expected_cost_pair[1]:
                 nodes_to_add = self.fire_lightweight_configuration(
                     lowest_expected_cost_pair[0], transition_id)
                 self.nodes = self.nodes.union(nodes_to_add)
 
-            heapq.heappush(open, (len(lowest_expected_cost_pair[1]) + p[0],
-                                  id(lowest_expected_cost_pair[0]),
-                                  lowest_expected_cost_pair[0]))
+            # Update the cost of this configuration and put it on the priority queue
+            new_f = f + len(lowest_expected_cost_pair[1])
 
+            # Put the item on the priority queue
+            heapq.heappush(open, (new_f, id(
+                lowest_expected_cost_pair[0]), lowest_expected_cost_pair[0]))
+
+            # Put the remaining configurations back on the priority queue with the original f as their cost
+            # TODO update costs of things already in open?
             for pair in configuration_transition_ids_pairs:
-                heapq.heappush(open, (p[0], id(pair[0]), pair[0]))
-            # for configuration, transition_ids in configuration_transition_ids_pairs:
-            #     for transition_id in transition_ids:
-            #         nodes_to_add = self.fire_lightweight_configuration(
-            #             configuration, transition_id)
-            #         self.nodes = self.nodes.union(nodes_to_add)
-            #     self.configurations.add(configuration)
+                already_in_open = False
+                # TODO this is very slow
+                for thing in open:
+                    if thing[2].fm == pair[0].fm:
+                        already_in_open = True
+                        # TODO update cost?
+                if not already_in_open:
+                    heapq.heappush(open, (f, id(pair[0]), pair[0]))
+
         # In our new configuration we want to fire all transitions that are NOT mutually exclusive, plus the transition that WAS mutually exclusive
         # The non-mutual exclusive transitions are stored in the enabled_transitions
 
@@ -551,20 +583,20 @@ def build_petri_net(filepath: str) -> tuple[PetriNet, Marking, Marking]:
 
 
 def main():
-    net, im, fm = build_petri_net("testnet_no_cycles.csv")
-    view_petri_net(net)
-    extended_net = ExtendedNet(net, im, fm)
-    bp = BranchingProcess(extended_net)
-    bp.initialize_from_initial_marking(im)
+    # net, im, fm = build_petri_net("testnet_no_cycles.csv")
+    # view_petri_net(net)
+    # extended_net = ExtendedNet(net, im, fm)
+    # bp = BranchingProcess(extended_net)
+    # bp.initialize_from_initial_marking(im)
 
-    bp.a_star()
-    # while len(bp.configurations) != 0:
-    #     bp.extend_naive()
+    # bp.a_star()
+    # # while len(bp.configurations) != 0:
+    # #     bp.extend_naive()
 
-    for configuration in bp.finished_configurations:
-        full_conf = bp.get_full_configuration_from_marking(configuration.fm)
-        new_net = bp.convert_configuration_to_net(full_conf)
-        view_petri_net(new_net)
+    # for configuration in bp.finished_configurations:
+    #     full_conf = bp.get_full_configuration_from_marking(configuration.fm)
+    #     new_net = bp.convert_configuration_to_net(full_conf)
+    #     view_petri_net(new_net)
 
     # net, im, fm = build_petri_net("testnet_cycles.csv")
     # view_petri_net(net, im, fm)
@@ -595,39 +627,41 @@ def main():
     #     new_net = bp.convert_configuration_to_net(full_conf)
     #     view_petri_net(new_net)
 
-    # df = pd.read_csv("testnet_complex.csv", sep=",")
-    # df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-    # net2, im2, fm2 = discover_petri_net_inductive(df,
-    #                                               activity_key="Activity",
-    #                                               case_id_key="CaseID",
-    #                                               timestamp_key="Timestamp")
+    df = pd.read_csv("testnet_complex.csv", sep=",")
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+    net2, im2, fm2 = discover_petri_net_inductive(df,
+                                                  activity_key="Activity",
+                                                  case_id_key="CaseID",
+                                                  timestamp_key="Timestamp")
 
-    # df2 = format_dataframe(df,
-    #                        activity_key="Activity",
-    #                        case_id="CaseID",
-    #                        timestamp_key="Timestamp")
-    # el = convert_to_event_log(df2, "CaseID")
-    # sync_prod, sync_prod_im, sync_prod_fm = construct_synchronous_product_net(
-    #     el[0], net2, im2, fm2)
-    # view_petri_net(sync_prod, sync_prod_im, sync_prod_fm)
-    # sync_prod_extended = ExtendedNet(sync_prod, sync_prod_im, sync_prod_fm)
-    # bp = BranchingProcess(sync_prod_extended)
-    # bp.initialize_from_initial_marking(sync_prod_im)
+    df2 = format_dataframe(df,
+                           activity_key="Activity",
+                           case_id="CaseID",
+                           timestamp_key="Timestamp")
+    el = convert_to_event_log(df2, "CaseID")
+    sync_prod, sync_prod_im, sync_prod_fm = construct_synchronous_product_net(
+        el[0], net2, im2, fm2)
+    view_petri_net(sync_prod, sync_prod_im, sync_prod_fm)
+    sync_prod_extended = ExtendedNet(sync_prod, sync_prod_im, sync_prod_fm)
+    bp = BranchingProcess(sync_prod_extended)
+    bp.initialize_from_initial_marking(sync_prod_im)
 
     # while len(bp.configurations) != 0:
     #     bp.extend_naive()
 
-    # print(len(bp.finished_configurations))
-    # complete = 0
-    # for c in bp.finished_configurations:
-    #     if bp.check_configuration_complete(c):
-    #         complete += 1
-    # print(complete)
+    bp.a_star()
 
-    # for configuration in bp.finished_configurations:
-    #     full_conf = bp.get_full_configuration_from_marking(configuration.fm)
-    #     new_net = bp.convert_configuration_to_net(full_conf)
-    #     view_petri_net(new_net)
+    print(len(bp.finished_configurations))
+    complete = 0
+    for c in bp.finished_configurations:
+        if bp.check_configuration_complete(c):
+            complete += 1
+    print(complete)
+
+    for configuration in bp.finished_configurations:
+        full_conf = bp.get_full_configuration_from_marking(configuration.fm)
+        new_net = bp.convert_configuration_to_net(full_conf)
+        view_petri_net(new_net)
 
 
 if __name__ == "__main__":
