@@ -180,9 +180,14 @@ class BranchingProcess:
         # A branching process is a set of nodes (conditions and events)
         self.nodes: set[Condition | Event] = set()
 
-        # Track the final nodes of a configuration (we can work backwards to retrieve the full configuration)
-        self.configurations: set[LightweightConfiguration] = set()
-        self.finished_configurations: set[LightweightConfiguration] = set()
+        self.possible_extensions: set[tuple[TransitionID,
+                                            frozenset[Condition]]] = set()
+        # TODO optimize this
+        # We track which extensions we have seen as a tuple (net transition ID, set of conditions)
+        self.extensions_seen: set[tuple[TransitionID,
+                                        frozenset[Condition]]] = set()
+
+        self.co_sets = set()
 
         # A branching process has an underlying PetriNet
         self.underlying_net: ExtendedNet = net
@@ -192,15 +197,117 @@ class BranchingProcess:
         self.im: set[Condition] = set()
 
     def initialize_from_initial_marking(self, im: Marking):
-        configuration_fm = set()
+        co_set = set()
+
         for place in im:
             condition = Condition(place.properties["id"])
-            configuration_fm.add(condition)
             self.nodes.add(condition)
             self.im.add(condition)
+            co_set.add(condition)
 
-        configuration = LightweightConfiguration(configuration_fm)
-        self.configurations.add(configuration)
+        self.co_sets.add(frozenset(co_set))
+        self.compute_pe()
+
+    def update_co_set(self, new_event: Event, new_conditions: set[Condition]):
+        new_co_sets = set()
+        for co_set in self.co_sets:
+            # TODO subset or equality?
+            if new_event.input_conditions.issubset(co_set):
+                # Preset conditions is contained in this coset, update the coset
+                new_co_set = co_set.difference(
+                    new_event.input_conditions).union(new_conditions)
+                new_co_sets.add(frozenset(new_co_set))
+                # TODO remove old co_set???
+        self.co_sets.update(new_co_sets)
+
+    def compute_pe(self):
+        # TODO optimze this so we don't completely recompute this every time we extend
+        # TODO picking things from pe should be done according to the search strategy
+        # For each transition in the net, find a co-set which is a superset
+        # Those transitions are possible extensions
+        for transition in self.underlying_net.transitions:
+            preset_ids = get_preset_ids(transition)
+            for co_set in self.co_sets:
+                co_set_place_ids = set([x.net_place_id for x in co_set])
+                # TODO subset or equality?
+                if preset_ids.issubset(co_set_place_ids):
+                    conditions_matching_preset = frozenset(
+                        [x for x in co_set if x.net_place_id in preset_ids])
+
+                    # TODO Check if this in the the BP already
+                    # TODO checking whether something is in the BP should be based on (net_transition, conditions), so using self.nodes probably won't work unless we make a special hash
+                    # TODO add the whole co_set or just the preset?
+                    pe = (transition.properties["id"],
+                          conditions_matching_preset)
+                    if pe not in self.extensions_seen:
+                        self.possible_extensions.add(pe)
+                        self.extensions_seen.add(pe)
+
+    def causal(self, node_1: Condition | Event, node_2: Condition | Event):
+        pass
+
+    def conflict_condition(self,
+                           condition_1: Condition,
+                           condition_2: Condition,
+                           output_event_1: Event = None,
+                           output_event_2: Event = None):
+        # From both nodes go backwards step by step, alternating
+        # If both reach the same place, pause
+        #   We now have two paths, one starting in node_1, one in node_2
+        #   In both paths we are now at the same place, call it p_same
+        #   Check if in both paths the transition following p_same is the same
+        #   If so, continue from step one
+        #   If not, node_1 and node_2 are in conflict
+        # If after going bakwards completely we are not in the same place (or were never in conflict before) then we are not in conflict
+
+        if condition_1.input_event is None and condition_2.input_event is None:
+            # This can only happen if one of the original conditions to check was in the IM
+            # Then there should be no conflict
+            # TODO check if this holds
+            if output_event_1 is None or output_event_2 is None:
+                return False
+
+            if condition_1.net_place_id == condition_2.net_place_id and output_event_1.net_transition_id != output_event_2.net_transition_id:
+                return True
+
+            return False
+
+        if condition_1.input_event is None:
+            next_conditions_1 = {condition_1}
+        else:
+            next_conditions_1 = condition_1.input_event.input_conditions
+
+        if condition_2.input_event is None:
+            next_conditions_2 = {condition_2}
+        else:
+            next_conditions_2 = condition_2.input_event.input_conditions
+
+        for c_1 in next_conditions_1:
+            for c_2 in next_conditions_2:
+                # If we reached the same place, check if the transitions that got us here are not the same
+                if c_1.net_place_id == c_2.net_place_id and condition_1.input_event.net_transition_id != condition_2.input_event.net_transition_id:
+                    # Conflict
+                    return True
+
+        # No conflict found yet
+        return self._conflict_condition_helper(next_conditions_1,
+                                               next_conditions_2,
+                                               condition_1.input_event,
+                                               condition_2.input_event)
+
+    def _conflict_condition_helper(self, conditions_1: set[Condition],
+                                   conditions_2: set[Condition], e_1: Event,
+                                   e_2: Event):
+        for condition_1 in conditions_1:
+            for condition_2 in conditions_2:
+                return self.conflict_condition(condition_1, condition_2, e_1,
+                                               e_2)
+
+    def conflict_event(self, event_1: Event, event_2: Event):
+        pass
+
+    def _conflict_event_helper(self, event_1: Event, event_2: Event):
+        pass
 
     # Just some pseudocode
     # We start with a configuration with the IM
@@ -371,53 +478,44 @@ class BranchingProcess:
         # Find the enabled transitions
         # If an OR branch would occur, make a new configuration for each branch and store the configuration
 
-        configuration = self.configurations.pop()
+        while len(self.possible_extensions) > 0:
+            pe = self.possible_extensions.pop()
+            # Do the  extension
+            added_event, added_conditions = self.extension_to_bp_node(pe)
+            #  Compute  the new  co-sets
+            self.update_co_set(added_event, added_conditions)
+            #  Compute the  new  PE
+            self.compute_pe()
 
-        net_marking_ids = self.bp_marking_to_net_marking_ids(configuration.fm)
+    def extension_to_bp_node(
+        self, extension: tuple[TransitionID, frozenset[Configuration]]
+    ) -> tuple[Event, Condition]:
 
-        enabled_transition_ids = self.underlying_net.get_enabled_net_transition_ids(
-            net_marking_ids)
+        new_event = Event(extension[0], set(extension[1]))
+        self.nodes.add(new_event)
+        postset_ids = get_postset_ids(
+            self.underlying_net.get_net_node_by_id(extension[0]))
+        added_conditions = set()
+        for place_id in postset_ids:
+            new_condition = Condition(place_id, new_event)
+            self.nodes.add(new_condition)
+            added_conditions.add(new_condition)
 
-        if len(enabled_transition_ids) == 0:
-            print("Finished configuration")
-            self.finished_configurations.add(configuration)
+        return new_event, added_conditions
 
-        # Check if any transitions would cause an OR branch to occur
-        or_branches = self.underlying_net.check_or_branch(
-            enabled_transition_ids, net_marking_ids)
-
-        # Use a list instead of a set because we will create duplicate configurations
-        # This is okay, because after firing them, they will no longer be duplicates
-        new_configurations = []
-        for transition_id in or_branches:
-            # Make a duplicate of our current configuration's marking
-            new_fm = copy(configuration.fm)
-
-            # Create a new configuration with the marking
-            new_configuration = LightweightConfiguration(new_fm)
-
-            # Add it to the list of new configurations
-            new_configurations.append((new_configuration, transition_id))
-
-            # In our original configuration we don't want to fire this transition again, so we remove it from the enabled_transitiosn set
-            enabled_transition_ids.remove(transition_id)
-
-        # Fire all mutually exclusive transitions in our new configurations and add them to the branching process
-        # TODO Store only the  configurations that have  a unique  final marking after firing so we don't store duplicate configurations
-        # TODO Actually can we do the above? We might have behviourally unique configurations with the same marking?
-        for configuration2, transition_id in new_configurations:
-            # TODO This is slightly inefficient because there are possibly more enabled  transitions in these  new  configurations
-            nodes_to_add = self.fire_lightweight_configuration(
-                configuration2, transition_id)
-            self.nodes = self.nodes.union(nodes_to_add)
-            self.configurations.add(configuration2)
-
-        # Fire all remaining transitions in the original popped configuration that are not mutually exclusive, then add it to the branching process again
-        for enabled_transition_id in enabled_transition_ids:
-            nodes_to_add = self.fire_lightweight_configuration(
-                configuration, enabled_transition_id)
-            self.nodes = self.nodes.union(nodes_to_add)
-            self.configurations.add(configuration)
+    # TODO make this more efficient
+    # TODO doesn't work if the FM is multiple places
+    # We don't know which events are "final" in the BP
+    # We try to find them here by checking which conditions are not reffered to by any event
+    def find_all_final_conditions(self):
+        final_conditions = set()
+        net_fm_ids = set()
+        for place in self.underlying_net.fm:
+            net_fm_ids.add(place.properties["id"])
+        for node in self.nodes:
+            if isinstance(node, Condition) and node.net_place_id in net_fm_ids:
+                final_conditions.add(node)
+        return final_conditions
 
     # TODO move this to configuration class?
     def get_full_configuration_from_marking(
@@ -485,11 +583,13 @@ class BranchingProcess:
 
         return ret
 
-    def convert_configuration_to_net(self,
-                                     configuration: Configuration) -> PetriNet:
+    def convert_nodes_to_net(self,
+                             nodes: set[Condition, Event] = None) -> PetriNet:
+        if nodes is None:
+            nodes = self.nodes
         ret = PetriNet()
 
-        for node in configuration.nodes:
+        for node in nodes:
             if isinstance(node, Event):
                 net_transition = self.underlying_net.get_net_node_by_id(
                     node.net_transition_id)
@@ -505,7 +605,7 @@ class BranchingProcess:
 
                 ret.transitions.add(new_transition)
 
-        for node in configuration.nodes:
+        for node in nodes:
             if isinstance(node, Condition):
                 if node.input_event:
                     target = None
@@ -613,14 +713,9 @@ def main():
     # bp = BranchingProcess(extended_net)
     # bp.initialize_from_initial_marking(im)
 
-    # bp.a_star()
-    # # while len(bp.configurations) != 0:
-    # #     bp.extend_naive()
-
-    # for configuration in bp.finished_configurations:
-    #     full_conf = bp.get_full_configuration_from_marking(configuration.fm)
-    #     new_net = bp.convert_configuration_to_net(full_conf)
-    #     view_petri_net(new_net)
+    # bp.extend_naive()
+    # bp_net = bp.convert_nodes_to_net()
+    # view_petri_net(bp_net)
 
     # net, im, fm = build_petri_net("testnet_cycles.csv")
     # view_petri_net(net, im, fm)
@@ -645,13 +740,12 @@ def main():
     # bp = BranchingProcess(extended_net)
     # bp.initialize_from_initial_marking(im)
 
-    # while len(bp.configurations) != 0:
-    #     bp.extend_naive()
-
-    # for configuration in bp.finished_configurations:
-    #     full_conf = bp.get_full_configuration_from_marking(configuration.fm)
-    #     new_net = bp.convert_configuration_to_net(full_conf)
-    #     view_petri_net(new_net)
+    # bp.extend_naive()
+    # final_conditions = bp.find_all_final_conditions()
+    # for condition in final_conditions:
+    #     new_configuration = bp.get_full_configuration_from_marking({condition})
+    #     configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
+    #     view_petri_net(configuration_net)
 
     df = pd.read_csv("testnet_complex.csv", sep=",")
     df["Timestamp"] = pd.to_datetime(df["Timestamp"])
@@ -672,26 +766,17 @@ def main():
     bp = BranchingProcess(sync_prod_extended)
     bp.initialize_from_initial_marking(sync_prod_im)
 
-    # while len(bp.configurations) != 0:
-    #     bp.extend_naive()
+    bp.extend_naive()
 
-    bp.a_star()
-
-    print(len(bp.finished_configurations))
-    complete = 0
-    for c in bp.finished_configurations:
-        if bp.check_configuration_complete(c):
-            complete += 1
-    print(complete)
-
-    for configuration in bp.finished_configurations:
-        full_conf = bp.get_full_configuration_from_marking(configuration.fm)
-        new_net = bp.convert_configuration_to_net(full_conf)
-        view_petri_net(new_net)
+    # final_conditions = bp.find_all_final_conditions()
+    # for condition in final_conditions:
+    #     new_configuration = bp.get_full_configuration_from_marking({condition})
+    #     configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
+    #     view_petri_net(configuration_net)
 
 
 if __name__ == "__main__":
-    main()
-    # with cProfile.Profile() as pr:
-    #     main()
-    # pr.dump_stats("program.prof")
+    # main()
+    with cProfile.Profile() as pr:
+        main()
+    pr.dump_stats("program.prof")
