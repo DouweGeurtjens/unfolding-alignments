@@ -187,7 +187,7 @@ class BranchingProcess:
         self.extensions_seen: set[tuple[TransitionID,
                                         frozenset[Condition]]] = set()
 
-        self.co_sets = set()
+        self.co_sets: set[frozenset[Condition]] = set()
 
         # A branching process has an underlying PetriNet
         self.underlying_net: ExtendedNet = net
@@ -206,9 +206,11 @@ class BranchingProcess:
             co_set.add(condition)
 
         self.co_sets.add(frozenset(co_set))
-        self.compute_pe()
+        self.compute_pe({frozenset(co_set)})
 
-    def update_co_set(self, new_event: Event, new_conditions: set[Condition]):
+    def update_co_set(
+            self, new_event: Event,
+            new_conditions: set[Condition]) -> set[frozenset[Condition]]:
         new_co_sets = set()
         for co_set in self.co_sets:
             # TODO subset or equality?
@@ -219,95 +221,27 @@ class BranchingProcess:
                 new_co_sets.add(frozenset(new_co_set))
                 # TODO remove old co_set???
         self.co_sets.update(new_co_sets)
+        return new_co_sets
 
-    def compute_pe(self):
-        # TODO optimze this so we don't completely recompute this every time we extend
+    def compute_pe(self, new_co_sets: set[frozenset[Condition]]):
         # TODO picking things from pe should be done according to the search strategy
         # For each transition in the net, find a co-set which is a superset
         # Those transitions are possible extensions
         for transition in self.underlying_net.transitions:
             preset_ids = get_preset_ids(transition)
-            for co_set in self.co_sets:
+            for co_set in new_co_sets:
                 co_set_place_ids = set([x.net_place_id for x in co_set])
-                # TODO subset or equality?
                 if preset_ids.issubset(co_set_place_ids):
                     conditions_matching_preset = frozenset(
                         [x for x in co_set if x.net_place_id in preset_ids])
 
                     # TODO Check if this in the the BP already
                     # TODO checking whether something is in the BP should be based on (net_transition, conditions), so using self.nodes probably won't work unless we make a special hash
-                    # TODO add the whole co_set or just the preset?
                     pe = (transition.properties["id"],
                           conditions_matching_preset)
                     if pe not in self.extensions_seen:
                         self.possible_extensions.add(pe)
                         self.extensions_seen.add(pe)
-
-    def causal(self, node_1: Condition | Event, node_2: Condition | Event):
-        pass
-
-    def conflict_condition(self,
-                           condition_1: Condition,
-                           condition_2: Condition,
-                           output_event_1: Event = None,
-                           output_event_2: Event = None):
-        # From both nodes go backwards step by step, alternating
-        # If both reach the same place, pause
-        #   We now have two paths, one starting in node_1, one in node_2
-        #   In both paths we are now at the same place, call it p_same
-        #   Check if in both paths the transition following p_same is the same
-        #   If so, continue from step one
-        #   If not, node_1 and node_2 are in conflict
-        # If after going bakwards completely we are not in the same place (or were never in conflict before) then we are not in conflict
-
-        if condition_1.input_event is None and condition_2.input_event is None:
-            # This can only happen if one of the original conditions to check was in the IM
-            # Then there should be no conflict
-            # TODO check if this holds
-            if output_event_1 is None or output_event_2 is None:
-                return False
-
-            if condition_1.net_place_id == condition_2.net_place_id and output_event_1.net_transition_id != output_event_2.net_transition_id:
-                return True
-
-            return False
-
-        if condition_1.input_event is None:
-            next_conditions_1 = {condition_1}
-        else:
-            next_conditions_1 = condition_1.input_event.input_conditions
-
-        if condition_2.input_event is None:
-            next_conditions_2 = {condition_2}
-        else:
-            next_conditions_2 = condition_2.input_event.input_conditions
-
-        for c_1 in next_conditions_1:
-            for c_2 in next_conditions_2:
-                # If we reached the same place, check if the transitions that got us here are not the same
-                if c_1.net_place_id == c_2.net_place_id and condition_1.input_event.net_transition_id != condition_2.input_event.net_transition_id:
-                    # Conflict
-                    return True
-
-        # No conflict found yet
-        return self._conflict_condition_helper(next_conditions_1,
-                                               next_conditions_2,
-                                               condition_1.input_event,
-                                               condition_2.input_event)
-
-    def _conflict_condition_helper(self, conditions_1: set[Condition],
-                                   conditions_2: set[Condition], e_1: Event,
-                                   e_2: Event):
-        for condition_1 in conditions_1:
-            for condition_2 in conditions_2:
-                return self.conflict_condition(condition_1, condition_2, e_1,
-                                               e_2)
-
-    def conflict_event(self, event_1: Event, event_2: Event):
-        pass
-
-    def _conflict_event_helper(self, event_1: Event, event_2: Event):
-        pass
 
     # Just some pseudocode
     # We start with a configuration with the IM
@@ -483,9 +417,9 @@ class BranchingProcess:
             # Do the  extension
             added_event, added_conditions = self.extension_to_bp_node(pe)
             #  Compute  the new  co-sets
-            self.update_co_set(added_event, added_conditions)
+            new_co_sets = self.update_co_set(added_event, added_conditions)
             #  Compute the  new  PE
-            self.compute_pe()
+            self.compute_pe(new_co_sets)
 
     def extension_to_bp_node(
         self, extension: tuple[TransitionID, frozenset[Configuration]]
@@ -734,39 +668,39 @@ def main():
     #     new_net = bp_cyles.convert_configuration_to_net(full_conf)
     #     view_petri_net(new_net)
 
-    # net, im, fm = build_petri_net("testnet_complex.csv")
-    # view_petri_net(net)
-    # extended_net = ExtendedNet(net, im, fm)
-    # bp = BranchingProcess(extended_net)
-    # bp.initialize_from_initial_marking(im)
-
-    # bp.extend_naive()
-    # final_conditions = bp.find_all_final_conditions()
-    # for condition in final_conditions:
-    #     new_configuration = bp.get_full_configuration_from_marking({condition})
-    #     configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-    #     view_petri_net(configuration_net)
-
-    df = pd.read_csv("testnet_complex.csv", sep=",")
-    df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-    net2, im2, fm2 = discover_petri_net_inductive(df,
-                                                  activity_key="Activity",
-                                                  case_id_key="CaseID",
-                                                  timestamp_key="Timestamp")
-
-    df2 = format_dataframe(df,
-                           activity_key="Activity",
-                           case_id="CaseID",
-                           timestamp_key="Timestamp")
-    el = convert_to_event_log(df2, "CaseID")
-    sync_prod, sync_prod_im, sync_prod_fm = construct_synchronous_product_net(
-        el[0], net2, im2, fm2)
-    view_petri_net(sync_prod, sync_prod_im, sync_prod_fm)
-    sync_prod_extended = ExtendedNet(sync_prod, sync_prod_im, sync_prod_fm)
-    bp = BranchingProcess(sync_prod_extended)
-    bp.initialize_from_initial_marking(sync_prod_im)
+    net, im, fm = build_petri_net("testnet_complex.csv")
+    view_petri_net(net)
+    extended_net = ExtendedNet(net, im, fm)
+    bp = BranchingProcess(extended_net)
+    bp.initialize_from_initial_marking(im)
 
     bp.extend_naive()
+    final_conditions = bp.find_all_final_conditions()
+    for condition in final_conditions:
+        new_configuration = bp.get_full_configuration_from_marking({condition})
+        configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
+        view_petri_net(configuration_net)
+
+    # df = pd.read_csv("testnet_complex.csv", sep=",")
+    # df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+    # net2, im2, fm2 = discover_petri_net_inductive(df,
+    #                                               activity_key="Activity",
+    #                                               case_id_key="CaseID",
+    #                                               timestamp_key="Timestamp")
+
+    # df2 = format_dataframe(df,
+    #                        activity_key="Activity",
+    #                        case_id="CaseID",
+    #                        timestamp_key="Timestamp")
+    # el = convert_to_event_log(df2, "CaseID")
+    # sync_prod, sync_prod_im, sync_prod_fm = construct_synchronous_product_net(
+    #     el[0], net2, im2, fm2)
+    # view_petri_net(sync_prod, sync_prod_im, sync_prod_fm)
+    # sync_prod_extended = ExtendedNet(sync_prod, sync_prod_im, sync_prod_fm)
+    # bp = BranchingProcess(sync_prod_extended)
+    # bp.initialize_from_initial_marking(sync_prod_im)
+
+    # bp.extend_naive()
 
     # final_conditions = bp.find_all_final_conditions()
     # for condition in final_conditions:
