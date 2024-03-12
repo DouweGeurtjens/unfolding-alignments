@@ -17,6 +17,27 @@ PlaceID: TypeAlias = int
 TransitionID: TypeAlias = int
 
 
+class PriorityQueue():
+
+    def __init__(self, item_type) -> None:
+        self.item_type = item_type
+        self.pq: heapq[item_type] = []
+
+    def pop(self):
+        return heapq.heappop(self.pq)
+
+    def push(self, item):
+        # if not isinstance(item, self.item_type):
+        #     raise TypeError
+        # TODO push only items that are not in the pq yet
+        # TODO also update items that are already in the pq
+        heapq.heappush(self.pq, item)
+
+    def push_many(self, items: set):
+        for item in items:
+            self.push(item)
+
+
 class IDGenerator:
 
     def __init__(self) -> None:
@@ -179,9 +200,8 @@ class BranchingProcess:
     def __init__(self, net: ExtendedNet) -> None:
         # A branching process is a set of nodes (conditions and events)
         self.nodes: set[Condition | Event] = set()
-
-        self.possible_extensions: set[tuple[TransitionID,
-                                            frozenset[Condition]]] = set()
+        self.possible_extensions = PriorityQueue(
+            tuple[int, int, tuple[TransitionID, frozenset[Condition]]])
         # TODO optimize this
         # We track which extensions we have seen as a tuple (net transition ID, set of conditions)
         self.extensions_seen: set[tuple[TransitionID,
@@ -206,7 +226,13 @@ class BranchingProcess:
             co_set.add(condition)
 
         self.co_sets.add(frozenset(co_set))
-        self.compute_pe({frozenset(co_set)})
+        new_possible_extensions = self.compute_pe({frozenset(co_set)})
+        # TODO make proper cost function
+        new_possible_extensions_with_cost = [(0, id(x), x)
+                                             for x in new_possible_extensions]
+        self.possible_extensions.push_many(new_possible_extensions_with_cost)
+        # Update the seen extensions
+        self.extensions_seen.update((new_possible_extensions))
 
     def update_co_set(
             self, new_event: Event,
@@ -223,10 +249,14 @@ class BranchingProcess:
         self.co_sets.update(new_co_sets)
         return new_co_sets
 
-    def compute_pe(self, new_co_sets: set[frozenset[Condition]]):
+    def compute_pe(
+        self, new_co_sets: set[frozenset[Condition]]
+    ) -> set[tuple[TransitionID, frozenset[Condition]]]:
         # TODO picking things from pe should be done according to the search strategy
         # For each transition in the net, find a co-set which is a superset
         # Those transitions are possible extensions
+        new_possible_extensions = set()
+
         for transition in self.underlying_net.transitions:
             preset_ids = get_preset_ids(transition)
             for co_set in new_co_sets:
@@ -237,11 +267,13 @@ class BranchingProcess:
 
                     # TODO Check if this in the the BP already
                     # TODO checking whether something is in the BP should be based on (net_transition, conditions), so using self.nodes probably won't work unless we make a special hash
+                    # TODO update heap conditions properly
                     pe = (transition.properties["id"],
                           conditions_matching_preset)
                     if pe not in self.extensions_seen:
-                        self.possible_extensions.add(pe)
-                        self.extensions_seen.add(pe)
+                        new_possible_extensions.add(pe)
+
+        return new_possible_extensions
 
     # Just some pseudocode
     # We start with a configuration with the IM
@@ -412,14 +444,22 @@ class BranchingProcess:
         # Find the enabled transitions
         # If an OR branch would occur, make a new configuration for each branch and store the configuration
 
-        while len(self.possible_extensions) > 0:
-            pe = self.possible_extensions.pop()
+        while len(self.possible_extensions.pq) > 0:
+            cost, _, pe = self.possible_extensions.pop()
             # Do the  extension
             added_event, added_conditions = self.extension_to_bp_node(pe)
             #  Compute  the new  co-sets
             new_co_sets = self.update_co_set(added_event, added_conditions)
             #  Compute the  new  PE
-            self.compute_pe(new_co_sets)
+            new_possible_extensions = self.compute_pe(new_co_sets)
+            # TODO proper cost function
+            new_possible_extensions_with_cost = [
+                (0, id(x), x) for x in new_possible_extensions
+            ]
+            # TODO think of where to put extensions_seen
+            self.possible_extensions.push_many(
+                new_possible_extensions_with_cost)
+            self.extensions_seen.update((new_possible_extensions))
 
     def extension_to_bp_node(
         self, extension: tuple[TransitionID, frozenset[Configuration]]
