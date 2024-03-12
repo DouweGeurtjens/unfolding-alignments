@@ -1,12 +1,14 @@
 from copy import deepcopy, copy
 import pandas as pd
-from pm4py import PetriNet, Marking, discover_petri_net_inductive, view_petri_net, construct_synchronous_product_net, format_dataframe, convert_to_event_log, conformance_diagnostics_alignments
+from pm4py import PetriNet, Marking, discover_petri_net_inductive, view_petri_net, format_dataframe, convert_to_event_log, conformance_diagnostics_alignments
 # Use TypeAlias because the type notation in introduced in 3.12 isn't support by yapf yet
 from typing import TypeAlias
 import cProfile, pstats
 from collections import Counter
 import heapq
 from operator import itemgetter
+# TODO fix imports
+from petrinet import *
 
 # TODO ALWAYS REMEMBER TO KEEP IN MIND THAT CONDITIONS/EVENTS ARE NOT DIRECTLY COMPARABLE TO PLACES/TRANSITIONS
 # TODO THIS MEANS THAT SET OPERATIONS WILL ONLY WORK BETWEEN THE SAME TYPE, SO NO conditions.intersection.places
@@ -36,98 +38,6 @@ class PriorityQueue():
     def push_many(self, items: set):
         for item in items:
             self.push(item)
-
-
-class IDGenerator:
-
-    def __init__(self) -> None:
-        self.counter = 0
-
-    def generate_id(self) -> int:
-        self.counter += 1
-        return self.counter
-
-
-IDGEN = IDGenerator()
-
-
-class ExtendedNet(PetriNet):
-
-    def __init__(self, net: PetriNet, im: Marking, fm: Marking):
-        super().__init__(net.name, net.places, net.transitions, net.arcs,
-                         net.properties)
-        self.im = im
-        self.fm = fm
-        self._extend_net()
-        self.id_to_node_mapping = self._build_id_to_node_mapping()
-
-    def _extend_net(self):
-        """Extend a Petri Net with explicit IDs on all places and transitions
-
-        Args:
-            net (PetriNet): The Petri Net to extend
-        """
-        for p in self.places:
-            p.properties["id"] = IDGEN.generate_id()
-        for t in self.transitions:
-            t.properties["id"] = IDGEN.generate_id()
-
-    def _build_id_to_node_mapping(self):
-        ret = {}
-
-        for p in self.places:
-            ret[p.properties["id"]] = p
-        for t in self.transitions:
-            ret[t.properties["id"]] = t
-
-        return ret
-
-    def check_or_branch(self, enabled_transition_ids: set[TransitionID],
-                        marking: set[PlaceID]) -> set[TransitionID]:
-        ret: set[TransitionID] = set()
-        # TODO rewrite this so it takes into account mutually exclusive PAIRS of transitions instead of one big set
-        # A set of transitions is mutually excluse if: for each transition there is one common input place
-
-        for place_id in marking:
-            postset_ids = get_postset_ids(self.get_net_node_by_id(place_id))
-            if len(postset_ids) > 1:
-                # This place can cause multiple transitions to be enabled
-                # We note down which transitions by checking the enabled_transtions and marking each one that is present in the postset of the place
-                mutually_exclusive_transition_ids = enabled_transition_ids.intersection(
-                    postset_ids)
-                ret = ret.union(mutually_exclusive_transition_ids)
-
-        return ret
-
-    def get_net_node_by_id(
-        self, node_id: PlaceID | TransitionID
-    ) -> PetriNet.Place | PetriNet.Transition:
-        return self.id_to_node_mapping[node_id]
-
-    def is_transition_enabled(self, transition_id: TransitionID,
-                              marking_ids: set[PlaceID]) -> bool:
-        # Checks if a given transition is enabled
-        preset_ids = get_preset_ids(self.get_net_node_by_id(transition_id))
-        return preset_ids.issubset(marking_ids)
-
-    def get_enabled_net_transition_ids(
-            self, marking_ids: set[PlaceID]) -> set[TransitionID]:
-        # Given a marking in the underlying net, get all enabled transitions
-        # For each place in the marking, get the postset transitions
-        # Then, for each transition, check if its preset places are ALL present in the given marking
-        # Only those transitions are enabled
-        ret = set()
-        transition_ids: list[TransitionID] = []
-        for place in marking_ids:
-            transition_ids.extend(
-                get_postset_ids(self.get_net_node_by_id(place)))
-
-        for transition_id in transition_ids:
-            enabled = self.is_transition_enabled(transition_id, marking_ids)
-            if enabled:
-                ret.add(transition_id)
-
-        return ret
 
 
 # A place in a branching process
@@ -212,24 +122,22 @@ class BranchingProcess:
         # A branching process has an underlying PetriNet
         self.underlying_net: ExtendedNet = net
 
-        # The initial marking of the branching process, set later
-        # TODO We are now assuming a single place as the IM
-        self.im: set[Condition] = set()
-
-    def initialize_from_initial_marking(self, im: Marking):
+    def initialize_from_initial_marking(self, cost_mapping):
         co_set = set()
 
-        for place in im:
-            condition = Condition(place.properties["id"])
+        for place in self.underlying_net.im:
+            condition = Condition(place.properties[NetProperties.ID])
             self.nodes.add(condition)
-            self.im.add(condition)
             co_set.add(condition)
 
         self.co_sets.add(frozenset(co_set))
         new_possible_extensions = self.compute_pe({frozenset(co_set)})
         # TODO make proper cost function
-        new_possible_extensions_with_cost = [(0, id(x), x)
-                                             for x in new_possible_extensions]
+        new_possible_extensions_with_cost = [
+            (cost_mapping[self.underlying_net.get_net_node_by_id(
+                x[0]).properties[NetProperties.MOVE_TYPE.name]], id(x), x)
+            for x in new_possible_extensions
+        ]
         self.possible_extensions.push_many(new_possible_extensions_with_cost)
         # Update the seen extensions
         self.extensions_seen.update((new_possible_extensions))
@@ -268,7 +176,7 @@ class BranchingProcess:
                     # TODO Check if this in the the BP already
                     # TODO checking whether something is in the BP should be based on (net_transition, conditions), so using self.nodes probably won't work unless we make a special hash
                     # TODO update heap conditions properly
-                    pe = (transition.properties["id"],
+                    pe = (transition.properties[NetProperties.ID],
                           conditions_matching_preset)
                     if pe not in self.extensions_seen:
                         new_possible_extensions.add(pe)
@@ -438,7 +346,7 @@ class BranchingProcess:
         # So for each mutually exclusive transition we make a new configuration, but we modify the enabled transition set to not include the other mutually exclusive transitions?
         # Then we can compute the total cost of firing the configuration (the mutually exclusive transition as well as all other possibly enabled transitions)
 
-    def extend_naive(self):
+    def extend_naive(self, cost_mapping):
         # TODO cycles currently generate infinite configurations, fix this!
         # Start from the configuration final markings (for now randomly, later best first approach)
         # Find the enabled transitions
@@ -448,13 +356,24 @@ class BranchingProcess:
             cost, _, pe = self.possible_extensions.pop()
             # Do the  extension
             added_event, added_conditions = self.extension_to_bp_node(pe)
+
+            # TODO make this nicer
+            # We allow only a single place as final marking
+            if len(added_conditions) == 1:
+                if self.underlying_net.get_net_node_by_id(
+                        list(added_conditions)
+                    [0].net_place_id) in self.underlying_net.fm:
+                    print(f"Found alignment with cost {cost}")
+                    return added_conditions
             #  Compute  the new  co-sets
             new_co_sets = self.update_co_set(added_event, added_conditions)
             #  Compute the  new  PE
             new_possible_extensions = self.compute_pe(new_co_sets)
             # TODO proper cost function
             new_possible_extensions_with_cost = [
-                (0, id(x), x) for x in new_possible_extensions
+                (cost + cost_mapping[self.underlying_net.get_net_node_by_id(
+                    x[0]).properties[NetProperties.MOVE_TYPE.name]], id(x), x)
+                for x in new_possible_extensions
             ]
             # TODO think of where to put extensions_seen
             self.possible_extensions.push_many(
@@ -463,7 +382,7 @@ class BranchingProcess:
 
     def extension_to_bp_node(
         self, extension: tuple[TransitionID, frozenset[Configuration]]
-    ) -> tuple[Event, Condition]:
+    ) -> tuple[Event, set[Condition]]:
 
         new_event = Event(extension[0], set(extension[1]))
         self.nodes.add(new_event)
@@ -483,9 +402,11 @@ class BranchingProcess:
     # We try to find them here by checking which conditions are not reffered to by any event
     def find_all_final_conditions(self):
         final_conditions = set()
-        net_fm_ids = set()
-        for place in self.underlying_net.fm:
-            net_fm_ids.add(place.properties["id"])
+
+        net_fm_ids = [
+            x.properties[NetProperties.ID] for x in self.underlying_net.fm
+        ]
+
         for node in self.nodes:
             if isinstance(node, Condition) and node.net_place_id in net_fm_ids:
                 final_conditions.add(node)
@@ -602,7 +523,7 @@ class BranchingProcess:
         net_marking_ids = []
         configuration_marking_ids = []
         for p in self.underlying_net.fm:
-            net_marking_ids.append(p.properties["id"])
+            net_marking_ids.append(p.properties[NetProperties.ID])
 
         for c in configuration.fm:
             configuration_marking_ids.append(c.net_place_id)
@@ -627,7 +548,7 @@ def get_postset_ids(
     ret = set()
 
     for arc in node.out_arcs:
-        ret.add(arc.target.properties["id"])
+        ret.add(arc.target.properties[NetProperties.ID])
 
     return ret
 
@@ -649,7 +570,7 @@ def get_preset_ids(
     ret = set()
 
     for arc in node.in_arcs:
-        ret.add(arc.source.properties["id"])
+        ret.add(arc.source.properties[NetProperties.ID])
 
     return ret
 
@@ -685,62 +606,45 @@ def main():
     # view_petri_net(net)
     # extended_net = ExtendedNet(net, im, fm)
     # bp = BranchingProcess(extended_net)
-    # bp.initialize_from_initial_marking(im)
+    # bp.initialize_from_initial_marking()
 
-    # bp.extend_naive()
-    # bp_net = bp.convert_nodes_to_net()
-    # view_petri_net(bp_net)
+    # alignment = bp.extend_naive()
+    # new_configuration = bp.get_full_configuration_from_marking(alignment)
+    # configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
+    # view_petri_net(configuration_net)
+    # final_conditions = bp.find_all_final_conditions()
+    # for condition in final_conditions:
+    #     new_configuration = bp.get_full_configuration_from_marking({condition})
+    #     configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
+    #     view_petri_net(configuration_net)
 
-    # net, im, fm = build_petri_net("testnet_cycles.csv")
-    # view_petri_net(net, im, fm)
-    # extended_net = ExtendedNet(net, im, fm)
-    # bp_cyles = BranchingProcess(extended_net)
-    # bp_cyles.initialize_from_initial_marking(im)
+    df = pd.read_csv("testnet_complex.csv", sep=",")
+    df_trace = df.loc[df["CaseID"] == "c1"]
+    # df_trace = df_trace.drop([0, 2])
+    print(df_trace)
 
-    # # while len(bp_cyles.finished_configurations) < 5:
-    # #     bp_cyles.extend_naive()
+    model, model_im, model_fm = construct_net(df)
+    trace_net, trace_net_im, trace_net_fm = construct_net(df_trace)
+    sync_net, sync_im, sync_fm = construct_synchronous_product(
+        model, model_im, model_fm, trace_net, trace_net_im, trace_net_fm)
+    view_petri_net(sync_net, sync_im, sync_fm)
+    sync_net_extended = ExtendedNet(sync_net, sync_im, sync_fm)
+    bp = BranchingProcess(sync_net_extended)
 
-    # bp_cyles.a_star()
+    cost_mapping = {
+        MoveTypes.LOG.name: 1,
+        MoveTypes.MODEL.name: 1,
+        MoveTypes.SYNC.name: 0,
+        MoveTypes.MODEL_SILENT.name: 0,
+        MoveTypes.DUMMY.name: 0
+    }
 
-    # for configuration in bp_cyles.finished_configurations:
-    #     full_conf = bp_cyles.get_full_configuration_from_marking(
-    #         configuration.fm)
-    #     new_net = bp_cyles.convert_configuration_to_net(full_conf)
-    #     view_petri_net(new_net)
+    bp.initialize_from_initial_marking(cost_mapping)
 
-    net, im, fm = build_petri_net("testnet_complex.csv")
-    view_petri_net(net)
-    extended_net = ExtendedNet(net, im, fm)
-    bp = BranchingProcess(extended_net)
-    bp.initialize_from_initial_marking(im)
-
-    bp.extend_naive()
-    final_conditions = bp.find_all_final_conditions()
-    for condition in final_conditions:
-        new_configuration = bp.get_full_configuration_from_marking({condition})
-        configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-        view_petri_net(configuration_net)
-
-    # df = pd.read_csv("testnet_complex.csv", sep=",")
-    # df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-    # net2, im2, fm2 = discover_petri_net_inductive(df,
-    #                                               activity_key="Activity",
-    #                                               case_id_key="CaseID",
-    #                                               timestamp_key="Timestamp")
-
-    # df2 = format_dataframe(df,
-    #                        activity_key="Activity",
-    #                        case_id="CaseID",
-    #                        timestamp_key="Timestamp")
-    # el = convert_to_event_log(df2, "CaseID")
-    # sync_prod, sync_prod_im, sync_prod_fm = construct_synchronous_product_net(
-    #     el[0], net2, im2, fm2)
-    # view_petri_net(sync_prod, sync_prod_im, sync_prod_fm)
-    # sync_prod_extended = ExtendedNet(sync_prod, sync_prod_im, sync_prod_fm)
-    # bp = BranchingProcess(sync_prod_extended)
-    # bp.initialize_from_initial_marking(sync_prod_im)
-
-    # bp.extend_naive()
+    alignment = bp.extend_naive(cost_mapping)
+    new_configuration = bp.get_full_configuration_from_marking(alignment)
+    configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
+    view_petri_net(configuration_net)
 
     # final_conditions = bp.find_all_final_conditions()
     # for condition in final_conditions:
@@ -750,7 +654,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    with cProfile.Profile() as pr:
-        main()
-    pr.dump_stats("program.prof")
+    main()
+    # with cProfile.Profile() as pr:
+    #     main()
+    # pr.dump_stats("program.prof")

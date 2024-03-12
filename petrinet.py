@@ -9,8 +9,8 @@ TransitionID: TypeAlias = int
 
 
 class NetProperties(Enum):
-    ID = "id"
-    MOVE_TYPE = "move_type"
+    ID = 1
+    MOVE_TYPE = 2
 
 
 class MoveTypes(Enum):
@@ -18,6 +18,7 @@ class MoveTypes(Enum):
     LOG = 2
     MODEL = 3
     MODEL_SILENT = 4
+    DUMMY = 5
 
 
 class IDGenerator:
@@ -35,13 +36,16 @@ IDGEN = IDGenerator()
 
 class ExtendedNet(PetriNet):
 
-    def __init__(self, net: PetriNet, im: Marking, fm: Marking,
-                 cost_function: Callable[[PetriNet.Transition], int]):
+    def __init__(
+        self,
+        net: PetriNet,
+        im: Marking,
+        fm: Marking,
+    ):
         super().__init__(net.name, net.places, net.transitions, net.arcs,
                          net.properties)
         self.im = im
         self.fm = fm
-        self.cost_function = cost_function
         self._extend_net()
         self.id_to_node_mapping = self._build_id_to_node_mapping()
 
@@ -113,9 +117,6 @@ class ExtendedNet(PetriNet):
 
         return ret
 
-    def get_transition_cost(self, transition: PetriNet.Transition) -> int:
-        return self.cost_function(transition)
-
 
 def get_postset(
     node: PetriNet.Place | PetriNet.Transition
@@ -162,6 +163,7 @@ def get_preset_ids(
 
 
 def construct_net(df: pd.DataFrame) -> tuple[PetriNet, Marking, Marking]:
+    # TODO don't discover trace nets lawl
     df["Timestamp"] = pd.to_datetime(df["Timestamp"])
     net, im, fm = discover_petri_net_inductive(df,
                                                activity_key="Activity",
@@ -176,12 +178,12 @@ def copy_into(source_net, target_net, upper, skip):
     for t in source_net.transitions:
         name = (t.name, skip) if upper else (skip, t.name)
         label = (t.label, skip) if upper else (skip, t.label)
-        t_map[t] = PetriNet.Transition(name, label)
+        t_map[t] = PetriNet.Transition(name, label, properties=t.properties)
         target_net.transitions.add(t_map[t])
 
     for p in source_net.places:
         name = (p.name, skip) if upper else (skip, p.name)
-        p_map[p] = PetriNet.Place(name)
+        p_map[p] = PetriNet.Place(name, properties=p.properties)
         target_net.places.add(p_map[p])
 
     for t in source_net.transitions:
@@ -207,11 +209,12 @@ def construct_synchronous_product(net_1: PetriNet, net_1_im: Marking,
     # First, set some properties
     for t in net_1.transitions:
         if t.label is None:
-            t.properties[NetProperties.MOVE_TYPE] = MoveTypes.MODEL_SILENT
+            t.properties[
+                NetProperties.MOVE_TYPE.name] = MoveTypes.MODEL_SILENT.name
         else:
-            t.properties[NetProperties.MOVE_TYPE] = MoveTypes.MODEL
+            t.properties[NetProperties.MOVE_TYPE.name] = MoveTypes.MODEL.name
     for t in net_2.transitions:
-        t.properties[NetProperties.MOVE_TYPE] = MoveTypes.LOG
+        t.properties[NetProperties.MOVE_TYPE.name] = MoveTypes.LOG.name
 
     t1_map, p1_map = copy_into(net_1, sync_net, True, ">>")
     t2_map, p2_map = copy_into(net_2, sync_net, False, ">>")
@@ -220,9 +223,12 @@ def construct_synchronous_product(net_1: PetriNet, net_1_im: Marking,
     for t1 in net_1.transitions:
         for t2 in net_2.transitions:
             if t1.label == t2.label:
-                sync = PetriNet.Transition(
-                    (t1.name, t2.name), (t1.label, t2.label),
-                    properties={NetProperties.MOVE_TYPE: MoveTypes.SYNC})
+                sync = PetriNet.Transition((t1.name, t2.name),
+                                           (t1.label, t2.label),
+                                           properties={
+                                               NetProperties.MOVE_TYPE.name:
+                                               MoveTypes.SYNC.name
+                                           })
                 sync_net.transitions.add(sync)
                 # # copy the properties of the transitions inside the transition of the sync net
                 # for p1 in t1.properties:
@@ -257,7 +263,8 @@ def construct_synchronous_product(net_1: PetriNet, net_1_im: Marking,
 
     dummy_start_transition = PetriNet.Transition(
         ("dummy_start_transition", "dummy start_transition"),
-        ("dummy_start_transition", "dummy start_transition"))
+        ("dummy_start_transition", "dummy start_transition"),
+        properties={NetProperties.MOVE_TYPE.name: MoveTypes.DUMMY.name})
     sync_net.transitions.add(dummy_start_transition)
 
     add_arc_from_to(dummy_start_place, dummy_start_transition, sync_net)
@@ -267,7 +274,8 @@ def construct_synchronous_product(net_1: PetriNet, net_1_im: Marking,
 
     dummy_end_transition = PetriNet.Transition(
         ("dummy_end_transition", "dummy_end_transition_1"),
-        ("dummy_end_transition", "dummy_end_transition_1"))
+        ("dummy_end_transition", "dummy_end_transition_1"),
+        properties={NetProperties.MOVE_TYPE.name: MoveTypes.DUMMY.name})
     sync_net.transitions.add(dummy_end_transition)
 
     dummy_end_place = PetriNet.Place(("dummy_end_place", "dummy_end_place_1"))
