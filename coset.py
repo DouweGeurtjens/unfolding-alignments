@@ -63,7 +63,7 @@ class Event:
 
 
 # A possible extension to a branching process
-class PossibleExtension():
+class PossibleExtension:
 
     def __init__(self, transition_id: TransitionID,
                  conditions: frozenset[Condition]) -> None:
@@ -84,7 +84,7 @@ class PossibleExtension():
 
 
 # The items being put on the priority queue
-class AStarItem():
+class AStarItem:
 
     def __init__(self, f, g, h, pe: PossibleExtension) -> None:
         self.f = f
@@ -101,7 +101,7 @@ class AStarItem():
 
 
 # A priority queue that can check in O(1) time if an item is in it
-class PriorityQueue():
+class PriorityQueue:
 
     def __init__(self) -> None:
         self.pq: heapq[AStarItem] = []
@@ -126,21 +126,7 @@ class PriorityQueue():
             self.push(item)
 
 
-class LightweightConfiguration:
-
-    def __init__(self, fm: set[Condition]) -> None:
-        # TODO Check this IM stuff?
-        # self.im = []
-        self.fm = fm
-
-    # TODO this doesn't hold behaviourally I think, only for reachability
-    # def __eq__(self, other: object) -> bool:
-    #     if isinstance(other, (LightweightConfiguration, Configuration)):
-    #         return self.fm == other.fm
-    #     return NotImplemented
-
-
-class Configuration(LightweightConfiguration):
+class Configuration:
 
     def __init__(self, fm: set[Condition]) -> None:
         super().__init__(fm)
@@ -150,6 +136,12 @@ class Configuration(LightweightConfiguration):
     # TODO unsure about this
     # def __eq__(self, other: object) -> bool:
     #     return super().__eq__(other)
+
+
+class UnfoldingAlignment:
+
+    def __init__(self) -> None:
+        pass
 
 
 class BranchingProcess:
@@ -570,6 +562,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # pm4py.
     # with cProfile.Profile() as pr:
     #     main()
     # pr.dump_stats("program.prof")
