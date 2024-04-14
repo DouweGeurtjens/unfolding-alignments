@@ -9,6 +9,7 @@ import heapq
 from operator import itemgetter
 # TODO fix imports
 from petrinet import *
+from itertools import product
 
 # TODO ALWAYS REMEMBER TO KEEP IN MIND THAT CONDITIONS/EVENTS ARE NOT DIRECTLY COMPARABLE TO PLACES/TRANSITIONS
 # TODO THIS MEANS THAT SET OPERATIONS WILL ONLY WORK BETWEEN THE SAME TYPE, SO NO conditions.intersection.places
@@ -165,6 +166,32 @@ class BranchingProcess:
         # A branching process has an underlying PetriNet
         self.underlying_net: ExtendedNet = net
 
+        # New coset approach
+        self.conditions_by_place_id: dict[PlaceID, set[Condition]] = {}
+
+    def initialize_from_initial_marking2(self, cost_mapping):
+        for place in self.underlying_net.places:
+            self.conditions_by_place_id[place.properties[
+                NetProperties.ID.name]] = set()
+        added_conditions = set()
+        for place in self.underlying_net.im:
+            condition = Condition(place.properties[NetProperties.ID.name])
+            self.conditions_by_place_id[place.properties[
+                NetProperties.ID.name]].add(condition)
+            added_conditions.add(condition)
+
+        # self.co_sets.add(frozenset(co_set))
+        new_possible_extensions = self.compute_pe2(added_conditions)
+        # TODO make proper cost function
+        new_possible_extensions_with_cost = [
+            self.pe_to_astar_search(x, cost_mapping)
+            for x in new_possible_extensions
+        ]
+        self.possible_extensions.push_many(new_possible_extensions_with_cost)
+        # Update the seen extensions
+        # TODO check if this makes any sense
+        # self.extensions_seen.update((new_possible_extensions))
+
     def initialize_from_initial_marking(self, cost_mapping):
         co_set = set()
 
@@ -182,7 +209,8 @@ class BranchingProcess:
         ]
         self.possible_extensions.push_many(new_possible_extensions_with_cost)
         # Update the seen extensions
-        self.extensions_seen.update((new_possible_extensions))
+        # TODO check if this makes any sense
+        # self.extensions_seen.update((new_possible_extensions))
 
     def update_co_set(
             self, new_event: Event,
@@ -235,7 +263,7 @@ class BranchingProcess:
 
         return False
 
-    def is_co_related(self, conditions: set[Condition]):
+    def is_co_related(self, conditions: frozenset[Condition]):
         # Start from our conditions, follow down the local configuration via a queue of events
         # Mark the input conditions of an event with the event it was visited from
         # If we find a condition which was already visited from a different event there is a conflict
@@ -248,8 +276,9 @@ class BranchingProcess:
         # Starting conditions are visited from nothings, so we use a negative integer
         for c in conditions:
             if c.input_event is not None:
-                if marks[c] == visited_from:
-                    return False
+                if c in marks:
+                    if marks[c] == visited_from:
+                        return False
                 queue.append(c.input_event)
                 marks[c] = visited_from
                 visited_from -= 1
@@ -265,7 +294,7 @@ class BranchingProcess:
                     # This condition has been visited before
                     if c in marks:
                         # It has been visited from a different transition
-                        if marks[c] != marks[item]:
+                        if marks[c] != visited_from:
                             return False
 
                     queue.append(c.input_event)
@@ -274,7 +303,7 @@ class BranchingProcess:
         return True
 
     def compute_pe2(
-        self, added_conditions: set[frozenset[Condition]]
+        self, added_conditions: set[Condition]
     ) -> set[tuple[TransitionID, frozenset[Condition]]]:
         # For each transition in the net, find a co-set which is a superset
         # Those transitions are possible extensions
@@ -282,17 +311,35 @@ class BranchingProcess:
 
         # TODO looping over all transitions is a bit slow, how do we optimize this?
         # TODO the only transitions that can be enabled are those present in the new_co_sets postset right?
+        postset_transition_ids = set()
         for condition in added_conditions:
             # Basically any transition that is in the postset of a place in the marking of the co-set
-            postset_transition_ids = get_postset_ids(
-                self.underlying_net.get_net_node_by_id(condition.net_place_id))
+            postset_transition_ids.update(
+                get_postset_ids(
+                    self.underlying_net.get_net_node_by_id(
+                        condition.net_place_id)))
 
-            for transition_id in postset_transition_ids:
-                transition = self.underlying_net.get_net_node_by_id(
-                    transition_id)
-                preset_ids = get_preset_ids(transition)
-                # Get conditions with place_id in preset_ids
-                # Try all combinations of conditions for co-relation
+        for transition_id in postset_transition_ids:
+            transition = self.underlying_net.get_net_node_by_id(transition_id)
+            preset_ids = get_preset_ids(transition)
+            # Get conditions with place_id in preset_ids
+            conditions = []
+            for place_id in preset_ids:
+                conditions.append(self.conditions_by_place_id[place_id])
+            # Try all combinations of conditions for co-relation
+            combs = product(*conditions)
+            for comb in combs:
+                comb_set = frozenset(comb)
+                pe = PossibleExtension(
+                    transition.properties[NetProperties.ID.name], comb_set,
+                    None)
+                if pe not in self.extensions_seen and pe not in self.possible_extensions.in_pq:
+                    if self.is_co_related(comb_set):
+                        local_configuration = self.get_full_configuration_from_marking(
+                            comb_set)
+                        pe.local_configuration = local_configuration
+                        new_possible_extensions.add(pe)
+                        break
 
         return new_possible_extensions
 
@@ -387,7 +434,7 @@ class BranchingProcess:
     def astar2(self, cost_mapping):
         while len(self.possible_extensions.pq) > 0:
             astar_item: AStarItem = self.possible_extensions.pop()
-            print(self.possible_extensions._visited)
+            # print(self.possible_extensions._visited)
             self.extensions_seen.add(astar_item.pe)
 
             # This event is a cut-off event
@@ -397,7 +444,7 @@ class BranchingProcess:
                 continue
 
             # Do the  extension
-            added_event, added_conditions = self.extension_to_bp_node(
+            added_event, added_conditions = self.extension_to_bp_node2(
                 astar_item.pe, astar_item.g)
 
             # TODO make this nicer
@@ -411,8 +458,17 @@ class BranchingProcess:
                     )
                     return added_conditions
 
-            # Find PEs enabled by the added conditions
-            self.compute_pe2()
+            # Compute the  new  PE
+            new_possible_extensions = self.compute_pe2(added_conditions)
+
+            # Compute new costs for each PE
+            new_possible_extensions_with_cost = [
+                self.pe_to_astar_search(x, cost_mapping)
+                for x in new_possible_extensions
+            ]
+            # Add the PEs with cost onto the priority queue
+            self.possible_extensions.push_many(
+                new_possible_extensions_with_cost)
 
             # Check for cut-offs
             if self.is_cut_off(added_event):
@@ -463,6 +519,37 @@ class BranchingProcess:
             # Check for cut-offs
             if self.is_cut_off(added_event):
                 self.cut_off_events.add(added_event)
+
+    def extension_to_bp_node2(self, extension: PossibleExtension,
+                              cost) -> tuple[Event, set[Condition]]:
+        # NOTE the configuration does not yet include the possible extension
+        new_event = Event(extension.transition_id, set(extension.conditions),
+                          extension.local_configuration, cost)
+
+        # Add the new_event to it's own local configuration
+        new_event.local_configuration.nodes.add(new_event)
+
+        # Fire the local configuration so we can store it keyed by marking
+        # TODO bookkeep this maybe?
+        net_marking = frozenset(
+            self.fire_configuration(new_event.local_configuration).items())
+
+        # Add event keyed by marking
+        if net_marking in self.events:
+            self.events[net_marking].append(new_event)
+        else:
+            self.events[net_marking] = [new_event]
+
+        # Add the conditions corresponding to the places of the postset of the transition corresponding to the event
+        postset_ids = get_postset_ids(
+            self.underlying_net.get_net_node_by_id(extension.transition_id))
+        added_conditions = set()
+        for place_id in postset_ids:
+            new_condition = Condition(place_id, new_event)
+            self.conditions_by_place_id[place_id].add(new_condition)
+            added_conditions.add(new_condition)
+
+        return new_event, added_conditions
 
     def extension_to_bp_node(self, extension: PossibleExtension,
                              cost) -> tuple[Event, set[Condition]]:
@@ -593,13 +680,13 @@ def main():
 
     xes_el = convert_to_event_log(format_dataframe(xes_df))
     view_petri_net(model_net, model_im, model_fm)
-    for i in range(0, 1):
+    for trace in xes_el:
         total_traces += 1
-        print(total_traces)
-        trace: pm4py.objects.log.obj.Trace = xes_el[i]
-        for e in trace:
-            if e["concept:name"] == "ER Sepsis Triage":
-                e["concept:name"] = "DEVIATION"
+        # print(total_traces)
+        # trace: pm4py.objects.log.obj.Trace = xes_el[i]
+        # for e in trace:
+        #     if e["concept:name"] == "ER Sepsis Triage":
+        #         e["concept:name"] = "DEVIATION"
 
         # trad_alignment = conformance_diagnostics_alignments(
         #     trace,
@@ -619,25 +706,38 @@ def main():
             model_net, model_im, model_fm, trace_net, trace_net_im,
             trace_net_fm)
 
-        view_petri_net(sync_net)
+        # view_petri_net(sync_net)
 
         sync_net_extended = ExtendedNet(sync_net, sync_im, sync_fm)
 
-        bp = BranchingProcess(sync_net_extended)
+        # bp = BranchingProcess(sync_net_extended)
 
-        bp.initialize_from_initial_marking(cost_mapping)
+        # bp.initialize_from_initial_marking(cost_mapping)
 
-        alignment = bp.astar(cost_mapping)
+        # alignment = bp.astar(cost_mapping)
+
+        # print(
+        #     f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
+        # )
+        # unf_q.append(bp.possible_extensions._queued)
+        # unf_v.append(bp.possible_extensions._visited)
+
+        # new_configuration = bp.get_full_configuration_from_marking(alignment)
+        # configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
+        # view_petri_net(configuration_net)
+        bp2 = BranchingProcess(sync_net_extended)
+        bp2.initialize_from_initial_marking2(cost_mapping)
+        alignment2 = bp2.astar2(cost_mapping)
         print(
-            f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
+            f"Qd {bp2.possible_extensions._queued}, Vd {bp2.possible_extensions._visited}"
         )
-        unf_q.append(bp.possible_extensions._queued)
-        unf_v.append(bp.possible_extensions._visited)
+        unf_q.append(bp2.possible_extensions._queued)
+        unf_v.append(bp2.possible_extensions._visited)
 
-        new_configuration = bp.get_full_configuration_from_marking(alignment)
-        configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-        view_petri_net(configuration_net)
-
+        new_configuration2 = bp2.get_full_configuration_from_marking(
+            alignment2)
+        configuration_net2 = bp2.convert_nodes_to_net(new_configuration2.nodes)
+        view_petri_net(configuration_net2)
     results = {}
     results["total_traces"] = total_traces
     results["fit"] = fit
