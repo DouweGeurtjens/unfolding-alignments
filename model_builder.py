@@ -392,17 +392,14 @@ class ActivityGenerator:
         return activity
 
 
-ACTIVITY_GENERATOR = ActivityGenerator()
-
-
 class Model:
 
     def __init__(self, starting_block) -> None:
         self.starting_block: Block = starting_block
 
-    def build(self) -> ProcessTree:
+    def build(self, activity_generator) -> ProcessTree:
         pt_string = ""
-        pt_string = self.starting_block.build(pt_string)
+        pt_string = self.starting_block.build(pt_string, activity_generator)
         pt = parse_process_tree(pt_string)
 
         return pt
@@ -420,7 +417,8 @@ class Block:
         self.children: list[Block] = children
         self.parent: Block = parent
 
-    def build(self, pt: str, operator: Operators) -> str:
+    def build(self, pt: str, operator: Operators,
+              activity_generator: ActivityGenerator) -> str:
         pt += operator.value + "("
 
         for i in range(self.breadth):
@@ -429,11 +427,11 @@ class Block:
 
             # Build depth, each activity followed by a comma
             for _ in range(self.depth):
-                pt += f"'{ACTIVITY_GENERATOR.generate_activity()}',"
+                pt += f"'{activity_generator.generate_activity()}',"
 
             # If there are children, build them
             if i < len(self.children):
-                pt = self.children[i].build(pt)
+                pt = self.children[i].build(pt, activity_generator)
 
             # If there are no children, remove the trailing comma
             else:
@@ -460,8 +458,8 @@ class ConcurrentBlock(Block):
                  parent=None) -> None:
         super().__init__(breadth, depth, children, parent)
 
-    def build(self, pt: str) -> str:
-        return super().build(pt, Operators.PARALLEL)
+    def build(self, pt: str, activity_generator) -> str:
+        return super().build(pt, Operators.PARALLEL, activity_generator)
 
 
 class ExclusiveBlock(Block):
@@ -473,8 +471,8 @@ class ExclusiveBlock(Block):
                  parent=None) -> None:
         super().__init__(breadth, depth, children, parent)
 
-    def build(self, pt: str):
-        return super().build(pt, Operators.XOR)
+    def build(self, pt: str, activity_generator):
+        return super().build(pt, Operators.XOR, activity_generator)
 
 
 class LoopBlock(Block):
@@ -486,21 +484,163 @@ class LoopBlock(Block):
                  parent=None) -> None:
         super().__init__(breadth, depth, children, parent)
 
-    def build(self, pt: str) -> str:
-        return super().build(pt, Operators.BINARY_LOOP)
+    def build(self, pt: str, activity_generator) -> str:
+        return super().build(pt, Operators.BINARY_LOOP, activity_generator)
 
 
 def main():
-    l = LoopBlock(2, 3, [])
-    e = ExclusiveBlock(2, 1, [l])
-    c = ConcurrentBlock(4, 2, [e, e])
-    m = Model(c)
-    pt = m.build()
-    # log = generate_log(pt, 10000)
-    # for trace in log:
-    #     print(trace)
-    pn, im, fm = convert_to_petri_net(pt)
-    view_petri_net(pn, im, fm)
+    # Basic concurrent and exclusive models
+    for breadth in range(2, 6):
+        for depth in range(1, 6):
+            activity_generator_c = ActivityGenerator()
+            c = ConcurrentBlock(breadth, depth, [])
+            mc = Model(c)
+            ptc = mc.build(activity_generator_c)
+            pm4py.write_ptml(
+                ptc, f"data/artificial_models/concurrent/b{breadth}_d{depth}")
+
+            activity_generator_e = ActivityGenerator()
+            e = ExclusiveBlock(breadth, depth, [])
+            me = Model(e)
+            pte = me.build(activity_generator_e)
+            pm4py.write_ptml(
+                pte, f"data/artificial_models/exclusive/b{breadth}_d{depth}")
+
+    # Nested concurrency in concurrency
+    for breadth in range(2, 6):
+        for depth in range(1, 6):
+            nesting_block = ConcurrentBlock(2, 2, [])
+            # Nested once
+            activity_generator_c_2 = ActivityGenerator()
+            c_1 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+            mc_1 = Model(c_1)
+            ptc_1 = mc_1.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_1,
+                f"data/artificial_models/concurrent_concurrent_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested twice
+            activity_generator_c_2 = ActivityGenerator()
+            c_2 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+            mc_2 = Model(c_2)
+            ptc_2 = mc_2.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_2,
+                f"data/artificial_models/concurrent_concurrent_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested thrice
+            activity_generator_c_3 = ActivityGenerator()
+            c_3 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+            mc_3 = Model(c_3)
+            ptc_3 = mc_3.build(activity_generator_c_3)
+            pm4py.write_ptml(
+                ptc_3,
+                f"data/artificial_models/concurrent_concurrent_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+    # Nested concurrency in exclusive
+    for breadth in range(2, 6):
+        for depth in range(1, 6):
+            nesting_block = ConcurrentBlock(2, 2, [])
+            # Nested once
+            activity_generator_c_2 = ActivityGenerator()
+            c_1 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+            mc_1 = Model(c_1)
+            ptc_1 = mc_1.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_1,
+                f"data/artificial_models/exclusive_concurrent_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested twice
+            activity_generator_c_2 = ActivityGenerator()
+            c_2 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+            mc_2 = Model(c_2)
+            ptc_2 = mc_2.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_2,
+                f"data/artificial_models/exclusive_concurrent_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested thrice
+            activity_generator_c_3 = ActivityGenerator()
+            c_3 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+            mc_3 = Model(c_3)
+            ptc_3 = mc_3.build(activity_generator_c_3)
+            pm4py.write_ptml(
+                ptc_3,
+                f"data/artificial_models/exclusive_concurrent_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+    # Nested exclusive in concurrency
+    for breadth in range(2, 6):
+        for depth in range(1, 6):
+            nesting_block = ExclusiveBlock(2, 2, [])
+            # Nested once
+            activity_generator_c_2 = ActivityGenerator()
+            c_1 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+            mc_1 = Model(c_1)
+            ptc_1 = mc_1.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_1,
+                f"data/artificial_models/concurrent_exclusive_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested twice
+            activity_generator_c_2 = ActivityGenerator()
+            c_2 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+            mc_2 = Model(c_2)
+            ptc_2 = mc_2.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_2,
+                f"data/artificial_models/concurrent_exclusive_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested thrice
+            activity_generator_c_3 = ActivityGenerator()
+            c_3 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+            mc_3 = Model(c_3)
+            ptc_3 = mc_3.build(activity_generator_c_3)
+            pm4py.write_ptml(
+                ptc_3,
+                f"data/artificial_models/concurrent_exclusive_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+    # Nested exclusive in exclusive
+    for breadth in range(2, 6):
+        for depth in range(1, 6):
+            nesting_block = ExclusiveBlock(2, 2, [])
+            # Nested once
+            activity_generator_c_2 = ActivityGenerator()
+            c_1 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+            mc_1 = Model(c_1)
+            ptc_1 = mc_1.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_1,
+                f"data/artificial_models/exclusive_exclusive_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested twice
+            activity_generator_c_2 = ActivityGenerator()
+            c_2 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+            mc_2 = Model(c_2)
+            ptc_2 = mc_2.build(activity_generator_c_2)
+            pm4py.write_ptml(
+                ptc_2,
+                f"data/artificial_models/exclusive_exclusive_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
+
+            # Nested thrice
+            activity_generator_c_3 = ActivityGenerator()
+            c_3 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+            mc_3 = Model(c_3)
+            ptc_3 = mc_3.build(activity_generator_c_3)
+            pm4py.write_ptml(
+                ptc_3,
+                f"data/artificial_models/exclusive_exclusive_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+            )
 
 
 if __name__ == "__main__":

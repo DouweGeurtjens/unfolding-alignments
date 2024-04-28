@@ -23,7 +23,7 @@ TransitionID: TypeAlias = int
 class BranchingProcessStandard(BranchingProcess):
 
     def __init__(self, net: ExtendedNet) -> None:
-        super().__init__()
+        super().__init__(net)
 
     def initialize_from_initial_marking(self, cost_mapping):
         for place in self.underlying_net.places:
@@ -36,8 +36,7 @@ class BranchingProcessStandard(BranchingProcess):
                 condition)
             added_conditions.add(condition)
 
-        # self.co_sets.add(frozenset(co_set))
-        new_possible_extensions = self.compute_pe2(added_conditions)
+        new_possible_extensions = self.compute_pe(added_conditions)
         # TODO make proper cost function
         new_possible_extensions_with_cost = [
             self.pe_to_astar_search(x, cost_mapping)
@@ -83,7 +82,7 @@ class BranchingProcessStandard(BranchingProcess):
 
         return True
 
-    def compute_pe2(
+    def compute_pe(
         self, added_conditions: set[Condition]
     ) -> set[tuple[TransitionID, frozenset[Condition]]]:
         # For each transition in the net, find a co-set which is a superset
@@ -124,49 +123,6 @@ class BranchingProcessStandard(BranchingProcess):
 
         return new_possible_extensions
 
-    def compute_pe(
-        self, new_co_sets: set[frozenset[Condition]]
-    ) -> set[tuple[TransitionID, frozenset[Condition]]]:
-        # For each transition in the net, find a co-set which is a superset
-        # Those transitions are possible extensions
-        new_possible_extensions = set()
-
-        # TODO looping over all transitions is a bit slow, how do we optimize this?
-        # TODO the only transitions that can be enabled are those present in the new_co_sets postset right?
-        for co_set in new_co_sets:
-            # Basically the marking of the co-set
-            co_set_place_ids = set([x.net_place_id for x in co_set])
-
-            # Basically any transition that is in the postset of a place in the marking of the co-set
-            co_set_postset_ids = set()
-
-            for condition in co_set:
-                co_set_postset_ids.update(
-                    get_postset_ids(
-                        self.underlying_net.get_net_node_by_id(
-                            condition.net_place_id)))
-
-            # For each transition in the postset of the coset places, check if it's enabled by the co-set
-            for transition_id in co_set_postset_ids:
-                transition = self.underlying_net.get_net_node_by_id(
-                    transition_id)
-                preset_ids = get_preset_ids(transition)
-                if preset_ids.issubset(co_set_place_ids):
-                    conditions_matching_preset = frozenset(
-                        [x for x in co_set if x.net_place_id in preset_ids])
-                    pe = PossibleExtension(
-                        transition.properties[NetProperties.ID.name],
-                        conditions_matching_preset, None)
-                    if pe not in self.extensions_seen and pe not in self.possible_extensions.in_pq:
-                        # Update the local configuration here so we do this expensive computation less often
-                        # NOTE the configuration does not yet include this possible extension
-                        local_configuration = self.get_full_configuration_from_marking(
-                            set(conditions_matching_preset))
-                        pe.local_configuration = local_configuration
-                        new_possible_extensions.add(pe)
-
-        return new_possible_extensions
-
     def astar(self, cost_mapping):
         while len(self.possible_extensions.pq) > 0:
             astar_item: AStarItem = self.possible_extensions.pop()
@@ -197,7 +153,7 @@ class BranchingProcessStandard(BranchingProcess):
                     return added_conditions
 
             # Compute the  new  PE
-            new_possible_extensions = self.compute_pe2(added_conditions)
+            new_possible_extensions = self.compute_pe(added_conditions)
 
             # Compute new costs for each PE
             new_possible_extensions_with_cost = [
@@ -232,7 +188,7 @@ def main():
     # model_net, model_im, model_fm = pm4py.read_pnml(
     #     "./banktransfer/model/original/banktransfer_opennet.pnml", True)
     # xes_df = pm4py.read_xes("./banktransfer/logs/2000-all-nonoise.xes")
-    xes_df = pm4py.read_xes("Sepsis Cases - Event Log.xes")
+    xes_df = pm4py.read_xes("data/Sepsis Cases - Event Log.xes")
     model_net, model_im, model_fm = discover_petri_net_inductive(
         xes_df, noise_threshold=0)
 
@@ -285,20 +241,20 @@ def main():
         # new_configuration = bp.get_full_configuration_from_marking(alignment)
         # configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
         # view_petri_net(configuration_net)
-        bp2 = BranchingProcess(sync_net_extended)
-        bp2.initialize_from_initial_marking2(cost_mapping)
-        alignment2 = bp2.astar2(cost_mapping)
+        bp2 = BranchingProcessStandard(sync_net_extended)
+        bp2.initialize_from_initial_marking(cost_mapping)
+        alignment2 = bp2.astar(cost_mapping)
         print(
             f"Qd {bp2.possible_extensions._queued}, Vd {bp2.possible_extensions._visited}"
         )
+        unf_q.append(bp2.possible_extensions._queued)
+        unf_v.append(bp2.possible_extensions._visited)
         # # nodes = set()
         # # for k, v in bp2.conditions_by_place_id.items():
         # #     nodes.update(v)
         # # for k, v in bp2.events.items():
         # #     nodes.update(v)
         # # view_petri_net(bp2.convert_nodes_to_net(nodes))
-        # unf_q.append(bp2.possible_extensions._queued)
-        # unf_v.append(bp2.possible_extensions._visited)
 
         # new_configuration2 = bp2.get_full_configuration_from_marking(
         #     alignment2)
@@ -312,7 +268,7 @@ def main():
     results["unf_q"] = unf_q
     results["unf_v"] = unf_v
 
-    with open("dump.json", "w") as f:
+    with open("results/dump.json", "w") as f:
         import json
         rstr = json.dumps(results, indent=4)
         f.write(rstr)
@@ -394,4 +350,4 @@ if __name__ == "__main__":
     # main()
     with cProfile.Profile() as pr:
         main()
-    pr.dump_stats("dump.prof")
+    pr.dump_stats("results/dump.prof")

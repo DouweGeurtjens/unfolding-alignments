@@ -220,34 +220,28 @@ def main():
         sync_net, sync_im, sync_fm = construct_synchronous_product(
             model_net, model_im, model_fm, trace_net, trace_net_im,
             trace_net_fm)
-        if len(sync_net.transitions) < 300:
+        if len(sync_net.transitions) < 150 and len(sync_net.transitions) > 250:
             continue
         # if len(sync_net.transitions) > 150:
         #     view_petri_net(sync_net)
         print(len(sync_net.transitions))
         sync_net_extended = ExtendedNet(sync_net, sync_im, sync_fm)
 
-        # bp = BranchingProcess(sync_net_extended)
+        bp = BranchingProcessBookkeep(sync_net_extended)
 
-        # bp.initialize_from_initial_marking(cost_mapping)
+        bp.initialize_from_initial_marking(cost_mapping)
 
-        # alignment = bp.astar(cost_mapping)
+        alignment = bp.astar(cost_mapping)
 
-        # print(
-        #     f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
-        # )
-        # unf_q.append(bp.possible_extensions._queued)
-        # unf_v.append(bp.possible_extensions._visited)
+        print(
+            f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
+        )
+        unf_q.append(bp.possible_extensions._queued)
+        unf_v.append(bp.possible_extensions._visited)
 
         # new_configuration = bp.get_full_configuration_from_marking(alignment)
         # configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
         # view_petri_net(configuration_net)
-        bp2 = BranchingProcess(sync_net_extended)
-        bp2.initialize_from_initial_marking2(cost_mapping)
-        alignment2 = bp2.astar2(cost_mapping)
-        print(
-            f"Qd {bp2.possible_extensions._queued}, Vd {bp2.possible_extensions._visited}"
-        )
         # # nodes = set()
         # # for k, v in bp2.conditions_by_place_id.items():
         # #     nodes.update(v)
