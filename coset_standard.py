@@ -24,6 +24,7 @@ class BranchingProcessStandard(BranchingProcess):
 
     def __init__(self, net: ExtendedNet) -> None:
         super().__init__(net)
+        self.co_sets = set()
 
     def initialize_from_initial_marking(self, cost_mapping):
         for place in self.underlying_net.places:
@@ -115,6 +116,7 @@ class BranchingProcessStandard(BranchingProcess):
                     None)
                 if pe not in self.extensions_seen and pe not in self.possible_extensions.in_pq:
                     if self.is_co_related(comb_set):
+                        self.co_sets.add(comb_set)
                         local_configuration = self.get_full_configuration_from_marking(
                             comb_set)
                         pe.local_configuration = local_configuration
@@ -126,9 +128,9 @@ class BranchingProcessStandard(BranchingProcess):
     def astar(self, cost_mapping):
         while len(self.possible_extensions.pq) > 0:
             astar_item: AStarItem = self.possible_extensions.pop()
-            print(self.possible_extensions._visited)
             self.extensions_seen.add(astar_item.pe)
-
+            if self.possible_extensions._visited > 1000:
+                return None
             # This event is a cut-off event
             if len(
                     self.cut_off_events.intersection(
@@ -145,11 +147,9 @@ class BranchingProcessStandard(BranchingProcess):
                 if self.underlying_net.get_net_node_by_id(
                         list(added_conditions)
                     [0].net_place_id) in self.underlying_net.fm:
-                    print(
-                        f"Found alignment with g {astar_item.g} and f {astar_item.f}"
-                    )
-                    if astar_item.g >= 1000:
-                        raise Exception
+                    # print(
+                    #     f"Found alignment with g {astar_item.g} and f {astar_item.f}"
+                    # )
                     return added_conditions
 
             # Compute the  new  PE
@@ -169,13 +169,7 @@ class BranchingProcessStandard(BranchingProcess):
                 self.cut_off_events.add(added_event)
 
 
-def main():
-    total_traces = 0
-    trad_q = []
-    trad_v = []
-    unf_q = []
-    unf_v = []
-    fit = []
+if __name__ == "__main__":
     cost_mapping = {
         MoveTypes.LOG.name: 1000,
         MoveTypes.MODEL.name: 1000,
@@ -191,163 +185,43 @@ def main():
     xes_df = pm4py.read_xes("data/Sepsis Cases - Event Log.xes")
     model_net, model_im, model_fm = discover_petri_net_inductive(
         xes_df, noise_threshold=0)
-
+    tn, tnim, tnfm = pm4py.discover_petri_net_alpha_plus(xes_df)
+    view_petri_net(tn, tnim, tnfm)
     xes_el = convert_to_event_log(format_dataframe(xes_df))
     view_petri_net(model_net, model_im, model_fm)
-    for trace in xes_el:
-        total_traces += 1
-        # print(total_traces)
-        # trace: pm4py.objects.log.obj.Trace = xes_el[i]
-        # for e in trace:
-        #     if e["concept:name"] == "ER Sepsis Triage":
-        #         e["concept:name"] = "DEVIATION"
-
-        # trad_alignment = conformance_diagnostics_alignments(
-        #     trace,
-        #     model_net,
-        #     model_im,
-        #     model_fm,
-        #     variant_str="Variants.VERSION_DIJKSTRA_NO_HEURISTICS")
-        # print(trad_alignment)
-        # trad_q.append(trad_alignment["queued_states"])
-        # trad_v.append(trad_alignment["visited_states"])
-        # fit.append(trad_alignment["fitness"])
-
-        trace_net, trace_net_im, trace_net_fm = construct_trace_net(
-            trace, "concept:name", "concept:name")
-
-        sync_net, sync_im, sync_fm = construct_synchronous_product(
-            model_net, model_im, model_fm, trace_net, trace_net_im,
-            trace_net_fm)
-        if len(sync_net.transitions) < 300:
-            continue
-        # if len(sync_net.transitions) > 150:
-        #     view_petri_net(sync_net)
-        print(len(sync_net.transitions))
-        sync_net_extended = ExtendedNet(sync_net, sync_im, sync_fm)
-
-        # bp = BranchingProcess(sync_net_extended)
-
-        # bp.initialize_from_initial_marking(cost_mapping)
-
-        # alignment = bp.astar(cost_mapping)
-
-        # print(
-        #     f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
-        # )
-        # unf_q.append(bp.possible_extensions._queued)
-        # unf_v.append(bp.possible_extensions._visited)
-
-        # new_configuration = bp.get_full_configuration_from_marking(alignment)
-        # configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-        # view_petri_net(configuration_net)
-        bp2 = BranchingProcessStandard(sync_net_extended)
-        bp2.initialize_from_initial_marking(cost_mapping)
-        alignment2 = bp2.astar(cost_mapping)
-        print(
-            f"Qd {bp2.possible_extensions._queued}, Vd {bp2.possible_extensions._visited}"
-        )
-        unf_q.append(bp2.possible_extensions._queued)
-        unf_v.append(bp2.possible_extensions._visited)
-        # # nodes = set()
-        # # for k, v in bp2.conditions_by_place_id.items():
-        # #     nodes.update(v)
-        # # for k, v in bp2.events.items():
-        # #     nodes.update(v)
-        # # view_petri_net(bp2.convert_nodes_to_net(nodes))
-
-        # new_configuration2 = bp2.get_full_configuration_from_marking(
-        #     alignment2)
-        # configuration_net2 = bp2.convert_nodes_to_net(new_configuration2.nodes)
-        # view_petri_net(configuration_net2)
-    results = {}
-    results["total_traces"] = total_traces
-    results["fit"] = fit
-    results["trad_q"] = trad_q
-    results["trad_v"] = trad_v
-    results["unf_q"] = unf_q
-    results["unf_v"] = unf_v
-
-    with open("results/dump.json", "w") as f:
-        import json
-        rstr = json.dumps(results, indent=4)
-        f.write(rstr)
-
-        # view_petri_net(configuration_net)
-        # view_petri_net(trace_net)
-    # net, im, fm = build_petri_net("testnet_no_cycles.csv")
-    # view_petri_net(net)
-    # extended_net = ExtendedNet(net, im, fm)
-    # bp = BranchingProcess(extended_net)
-    # bp.initialize_from_initial_marking()
-
-    # alignment = bp.extend_naive()
-    # new_configuration = bp.get_full_configuration_from_marking(alignment)
-    # configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-    # view_petri_net(configuration_net)
-    # final_conditions = bp.find_all_final_conditions()
-    # for condition in final_conditions:
-    #     new_configuration = bp.get_full_configuration_from_marking({condition})
-    #     configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-    #     view_petri_net(configuration_net)
-
-    # df = pd.read_csv("testnet_complex.csv", sep=",")
-    # df_trace = df.loc[df["CaseID"] == "c5"]
-    # df_trace = df_trace.drop([22])
-    # print(df_trace)
-
-    # model, model_im, model_fm = construct_net(df)
-    # trace_net, trace_net_im, trace_net_fm = construct_net(df_trace)
-    # sync_net, sync_im, sync_fm = construct_synchronous_product(
-    #     model, model_im, model_fm, trace_net, trace_net_im, trace_net_fm)
-    # view_petri_net(sync_net, sync_im, sync_fm)
-    # el = convert_to_event_log(
-    #     format_dataframe(df_trace,
-    #                      activity_key="Activity",
-    #                      case_id="CaseID",
-    #                      timestamp_key="Timestamp"))
-    # # view_petri_net(s, si, sf)
-    # sync_net_extended = ExtendedNet(sync_net, sync_im, sync_fm)
-    # bp = BranchingProcess(sync_net_extended)
-
-    # cost_mapping = {
-    #     MoveTypes.LOG.name: 1000,
-    #     MoveTypes.MODEL.name: 1000,
-    #     MoveTypes.SYNC.name: 0,
-    #     MoveTypes.MODEL_SILENT.name: 1,
-    #     MoveTypes.DUMMY.name: 0
-    # }
-
-    # bp.initialize_from_initial_marking(cost_mapping)
-
-    # alignment = bp.extend_naive(cost_mapping)
+    sync_net, sync_im, sync_fm = construct_synchronous_product(
+        model_net, model_im, model_fm, tn, tnim, tnfm)
+    extended_net = ExtendedNet(sync_net, sync_im, sync_fm)
+    view_petri_net(sync_net, sync_im, sync_fm)
+    bp = BranchingProcessStandard(extended_net)
+    bp.initialize_from_initial_marking(cost_mapping)
+    alignment = bp.astar(cost_mapping)
+    nodes = set()
+    for v in bp.conditions.values():
+        nodes.update(v)
+    for v in bp.events.values():
+        nodes.update(v)
+    view_petri_net(bp.convert_nodes_to_net(nodes))
     # print(
     #     f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
     # )
-    # new_configuration = bp.get_full_configuration_from_marking(alignment)
-    # configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-    # view_petri_net(configuration_net)
+    # config = bp.get_full_configuration_from_marking(alignment)
+    # alignment_net = bp.convert_nodes_to_net(config.nodes)
+    # view_petri_net(alignment_net)
+    # for trace in xes_el:
+    #     trace_net, trace_net_im, trace_net_fm = construct_trace_net(
+    #         trace, "concept:name", "concept:name")
 
-    # print(
-    #     conformance_diagnostics_alignments(
-    #         df_trace,
-    #         model,
-    #         model_im,
-    #         model_fm,
-    #         activity_key="Activity",
-    #         case_id_key="CaseID",
-    #         timestamp_key="Timestamp",
-    #         variant_str="Variants.VERSION_DIJKSTRA_NO_HEURISTICS"))
-
-    # final_conditions = bp.find_all_final_conditions()
-    # for condition in final_conditions:
-    #     new_configuration = bp.get_full_configuration_from_marking({condition})
-    #     configuration_net = bp.convert_nodes_to_net(new_configuration.nodes)
-    #     view_petri_net(configuration_net)
-
-
-if __name__ == "__main__":
-    # main()
-    with cProfile.Profile() as pr:
-        main()
-    pr.dump_stats("results/dump.prof")
+    #     if len(sync_net.transitions) > 100:
+    #         continue
+    #     print(len(sync_net.transitions))
+    #     for p in sync_net.places:
+    #         p.name = str(p.name)
+    #     for t in sync_net.transitions:
+    #         t.name = str(t.name)
+    #         t.label = str(t.name)
+    #     pm4py.write_pnml(petri_net=sync_net,
+    #                      initial_marking=sync_im,
+    #                      final_marking=sync_fm,
+    #                      file_path="lmao")
+    #     sync_net_extended = ExtendedNet(sync_net, sync_im, sync_fm)

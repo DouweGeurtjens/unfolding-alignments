@@ -4,7 +4,7 @@ from pm4py import PetriNet, Marking, discover_petri_net_inductive, view_petri_ne
 # Use TypeAlias because the type notation in introduced in 3.12 isn't support by yapf yet
 from typing import TypeAlias
 import cProfile, pstats
-from collections import Counter
+from collections import Counter, deque
 import heapq
 from operator import itemgetter
 # TODO fix imports
@@ -284,26 +284,24 @@ class BranchingProcess:
     def get_full_configuration_from_marking(
             self, marking: set[Condition]) -> Configuration:
         configuration = Configuration()
-
+        stack = deque()
         for condition in marking:
-            self._get_full_configuration_from_marking_helper(
-                condition, configuration)
+            if condition not in configuration.nodes:
+                stack.append(condition)
+                configuration.nodes.add(condition)
+        while len(stack) != 0:
+            item = stack.pop()
+            configuration.nodes.add(item)
+            if isinstance(item, Event):
+                for condition in item.input_conditions:
+                    if condition not in configuration.nodes:
+                        stack.append(condition)
+            if isinstance(item, Condition):
+                if item.input_event is not None:
+                    if item.input_event not in configuration.nodes:
+                        stack.append(item.input_event)
 
         return configuration
-
-    def _get_full_configuration_from_marking_helper(
-            self, condition: Condition, configuration: Configuration):
-        # No need to further explore here down this branch
-        if condition in configuration.nodes:
-            return
-
-        configuration.nodes.add(condition)
-        if condition.input_event is not None:
-            configuration.nodes.add(condition.input_event)
-
-            for c in condition.input_event.input_conditions:
-                self._get_full_configuration_from_marking_helper(
-                    c, configuration)
 
     def bp_marking_to_net_marking_ids(
             self, bp_marking: set[Condition]) -> set[PlaceID]:

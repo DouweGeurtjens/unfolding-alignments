@@ -5,6 +5,7 @@ from enum import Enum
 import pm4py
 import random
 from itertools import product
+from settings import *
 
 
 class Operators(Enum):
@@ -490,157 +491,132 @@ class LoopBlock(Block):
 
 def main():
     # Basic concurrent and exclusive models
-    for breadth in range(2, 6):
-        for depth in range(1, 6):
+    for breadth in range(2, 16):
+        for depth in range(1, 16):
             activity_generator_c = ActivityGenerator()
             c = ConcurrentBlock(breadth, depth, [])
-            mc = Model(c)
-            ptc = mc.build(activity_generator_c)
-            pm4py.write_ptml(
-                ptc, f"data/artificial_models/concurrent/b{breadth}_d{depth}")
+            m = Model(c)
+            pt = m.build(activity_generator_c)
+            pm4py.write_ptml(pt, f"{CONCURRENT_MODEL_DIR}/b{breadth}_d{depth}")
+            log = generate_log(pt, 50)
+            pm4py.write_xes(log, f"{CONCURRENT_MODEL_DIR}/b{breadth}_d{depth}")
 
             activity_generator_e = ActivityGenerator()
             e = ExclusiveBlock(breadth, depth, [])
             me = Model(e)
-            pte = me.build(activity_generator_e)
-            pm4py.write_ptml(
-                pte, f"data/artificial_models/exclusive/b{breadth}_d{depth}")
+            pt = me.build(activity_generator_e)
+            pm4py.write_ptml(pt, f"{EXCLUSIVE_MODEL_DIR}/b{breadth}_d{depth}")
+            log = generate_log(pt, 50)
+            pm4py.write_xes(log, f"{EXCLUSIVE_MODEL_DIR}/b{breadth}_d{depth}")
 
     # Nested concurrency in concurrency
-    for breadth in range(2, 6):
+    for breadth in range(2, 3):
         for depth in range(1, 6):
-            nesting_block = ConcurrentBlock(2, 2, [])
-            # Nested once
-            activity_generator_c_2 = ActivityGenerator()
-            c_1 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
-            mc_1 = Model(c_1)
-            ptc_1 = mc_1.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_1,
-                f"data/artificial_models/concurrent_concurrent_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+            nesting_block_base = ConcurrentBlock(breadth, depth, [])
+            for nest in range(1, 6):
+                if nest == 1:
+                    nesting_block = nesting_block_base
+                else:
+                    nesting_block = ConcurrentBlock(
+                        breadth, depth, [nesting_block_base] * breadth)
+                    nesting_block_base = nesting_block
 
-            # Nested twice
-            activity_generator_c_2 = ActivityGenerator()
-            c_2 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
-            mc_2 = Model(c_2)
-            ptc_2 = mc_2.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_2,
-                f"data/artificial_models/concurrent_concurrent_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
-
-            # Nested thrice
-            activity_generator_c_3 = ActivityGenerator()
-            c_3 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
-            mc_3 = Model(c_3)
-            ptc_3 = mc_3.build(activity_generator_c_3)
-            pm4py.write_ptml(
-                ptc_3,
-                f"data/artificial_models/concurrent_concurrent_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+                # Nested once
+                activity_generator = ActivityGenerator()
+                c = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+                m = Model(c)
+                pt = m.build(activity_generator)
+                pm4py.write_ptml(
+                    pt,
+                    f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
+                log = generate_log(pt, 50)
+                pm4py.write_xes(
+                    log,
+                    f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
+                # pm4py.view_petri_net(*pm4py.convert_to_petri_net(pt))
 
     # Nested concurrency in exclusive
-    for breadth in range(2, 6):
+    for breadth in range(2, 3):
         for depth in range(1, 6):
-            nesting_block = ConcurrentBlock(2, 2, [])
-            # Nested once
-            activity_generator_c_2 = ActivityGenerator()
-            c_1 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
-            mc_1 = Model(c_1)
-            ptc_1 = mc_1.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_1,
-                f"data/artificial_models/exclusive_concurrent_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+            nesting_block_base = ConcurrentBlock(breadth, depth, [])
+            for nest in range(1, 6):
+                if nest == 1:
+                    nesting_block = nesting_block_base
+                else:
+                    nesting_block = ConcurrentBlock(
+                        breadth, depth, [nesting_block_base] * breadth)
+                    nesting_block_base = nesting_block
 
-            # Nested twice
-            activity_generator_c_2 = ActivityGenerator()
-            c_2 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
-            mc_2 = Model(c_2)
-            ptc_2 = mc_2.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_2,
-                f"data/artificial_models/exclusive_concurrent_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
-
-            # Nested thrice
-            activity_generator_c_3 = ActivityGenerator()
-            c_3 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
-            mc_3 = Model(c_3)
-            ptc_3 = mc_3.build(activity_generator_c_3)
-            pm4py.write_ptml(
-                ptc_3,
-                f"data/artificial_models/exclusive_concurrent_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+                # Nested once
+                activity_generator = ActivityGenerator()
+                c = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+                m = Model(c)
+                pt = m.build(activity_generator)
+                pm4py.write_ptml(
+                    pt,
+                    f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
+                log = generate_log(pt, 50)
+                pm4py.write_xes(
+                    log,
+                    f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
 
     # Nested exclusive in concurrency
-    for breadth in range(2, 6):
+    for breadth in range(2, 3):
         for depth in range(1, 6):
-            nesting_block = ExclusiveBlock(2, 2, [])
-            # Nested once
-            activity_generator_c_2 = ActivityGenerator()
-            c_1 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
-            mc_1 = Model(c_1)
-            ptc_1 = mc_1.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_1,
-                f"data/artificial_models/concurrent_exclusive_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+            nesting_block_base = ExclusiveBlock(breadth, depth, [])
+            for nest in range(1, 6):
+                if nest == 1:
+                    nesting_block = nesting_block_base
+                else:
+                    nesting_block = ConcurrentBlock(
+                        breadth, depth, [nesting_block_base] * breadth)
+                    nesting_block_base = nesting_block
 
-            # Nested twice
-            activity_generator_c_2 = ActivityGenerator()
-            c_2 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
-            mc_2 = Model(c_2)
-            ptc_2 = mc_2.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_2,
-                f"data/artificial_models/concurrent_exclusive_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
-
-            # Nested thrice
-            activity_generator_c_3 = ActivityGenerator()
-            c_3 = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
-            mc_3 = Model(c_3)
-            ptc_3 = mc_3.build(activity_generator_c_3)
-            pm4py.write_ptml(
-                ptc_3,
-                f"data/artificial_models/concurrent_exclusive_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+                # Nested once
+                activity_generator = ActivityGenerator()
+                c = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
+                m = Model(c)
+                pt = m.build(activity_generator)
+                pm4py.write_ptml(
+                    pt,
+                    f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
+                log = generate_log(pt, 50)
+                pm4py.write_xes(
+                    log,
+                    f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
 
     # Nested exclusive in exclusive
-    for breadth in range(2, 6):
+    for breadth in range(2, 3):
         for depth in range(1, 6):
-            nesting_block = ExclusiveBlock(2, 2, [])
-            # Nested once
-            activity_generator_c_2 = ActivityGenerator()
-            c_1 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
-            mc_1 = Model(c_1)
-            ptc_1 = mc_1.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_1,
-                f"data/artificial_models/exclusive_exclusive_nested/b{breadth}_d{depth}_n1_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+            nesting_block_base = ExclusiveBlock(breadth, depth, [])
+            for nest in range(1, 6):
+                if nest == 1:
+                    nesting_block = nesting_block_base
+                else:
+                    nesting_block = ConcurrentBlock(
+                        breadth, depth, [nesting_block_base] * breadth)
+                    nesting_block_base = nesting_block
 
-            # Nested twice
-            activity_generator_c_2 = ActivityGenerator()
-            c_2 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
-            mc_2 = Model(c_2)
-            ptc_2 = mc_2.build(activity_generator_c_2)
-            pm4py.write_ptml(
-                ptc_2,
-                f"data/artificial_models/exclusive_exclusive_nested/b{breadth}_d{depth}_n2_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
-
-            # Nested thrice
-            activity_generator_c_3 = ActivityGenerator()
-            c_3 = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
-            mc_3 = Model(c_3)
-            ptc_3 = mc_3.build(activity_generator_c_3)
-            pm4py.write_ptml(
-                ptc_3,
-                f"data/artificial_models/exclusive_exclusive_nested/b{breadth}_d{depth}_n3_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-            )
+                # Nested once
+                activity_generator = ActivityGenerator()
+                c = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
+                m = Model(c)
+                pt = m.build(activity_generator)
+                pm4py.write_ptml(
+                    pt,
+                    f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
+                log = generate_log(pt, 50)
+                pm4py.write_xes(
+                    log,
+                    f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
+                )
 
 
 if __name__ == "__main__":
