@@ -34,18 +34,18 @@ class IDGenerator:
 IDGEN = IDGenerator()
 
 
-class ExtendedNet(PetriNet):
+class ExtendedSyncNet(PetriNet):
 
     def __init__(
         self,
-        net: PetriNet,
-        im: Marking,
-        fm: Marking,
+        sync_net: PetriNet,
+        sync_im: Marking,
+        sync_fm: Marking,
     ):
-        super().__init__(net.name, net.places, net.transitions, net.arcs,
-                         net.properties)
-        self.im = im
-        self.fm = fm
+        super().__init__(sync_net.name, sync_net.places, sync_net.transitions,
+                         sync_net.arcs, sync_net.properties)
+        self.im = sync_im
+        self.fm = sync_fm
         self._extend_net()
         self.id_to_node_mapping = self._build_id_to_node_mapping()
 
@@ -56,9 +56,11 @@ class ExtendedNet(PetriNet):
             net (PetriNet): The Petri Net to extend
         """
         for p in self.places:
-            p.properties[NetProperties.ID.name] = IDGEN.generate_id()
+            if NetProperties.ID.name not in p.properties:
+                p.properties[NetProperties.ID.name] = IDGEN.generate_id()
         for t in self.transitions:
-            t.properties[NetProperties.ID.name] = IDGEN.generate_id()
+            if NetProperties.ID.name not in t.properties:
+                t.properties[NetProperties.ID.name] = IDGEN.generate_id()
 
     def _build_id_to_node_mapping(self):
         ret = {}
@@ -80,6 +82,19 @@ class ExtendedNet(PetriNet):
         # Checks if a given transition is enabled
         preset_ids = get_preset_ids(self.get_net_node_by_id(transition_id))
         return preset_ids.issubset(marking_ids)
+
+
+class ExtendedSyncNetStreaming(ExtendedSyncNet):
+
+    def __init__(self, sync_net: PetriNet, sync_im: Marking, sync_fm: Marking,
+                 trace_fm: Marking):
+        super().__init__(sync_net, sync_im, sync_fm)
+        # To find the endpoint of the perfix alignment
+        self.trace_fm = Marking()
+        for p1 in trace_fm:
+            for p2 in sync_net.places:
+                if p2.name == (p1.name, ">>"):
+                    self.trace_fm[p2] = 1
 
 
 def get_postset(
@@ -185,6 +200,24 @@ def add_arc_from_to(fr, to, net: PetriNet, weight=1):
     net.arcs.add(arc)
     fr.out_arcs.add(arc)
     to.in_arcs.add(arc)
+
+
+# trace_event_number is the index of the trace_event in the total trace
+def update_new_synchronous_product_streaming(old_sync_net, new_sync_net):
+    # Copy over IDs
+    copied_transition_ids = set()
+    for t1 in old_sync_net.transitions:
+        for t2 in new_sync_net.transitions:
+            if t1.name == t2.name:
+                t2.properties[NetProperties.ID.name] = t1.properties[
+                    NetProperties.ID.name]
+                copied_transition_ids.add(t2.properties[NetProperties.ID.name])
+
+    for p1 in old_sync_net.places:
+        for p2 in new_sync_net.places:
+            if p1.name == p2.name:
+                p2.properties[NetProperties.ID.name] = p1.properties[
+                    NetProperties.ID.name]
 
 
 def construct_synchronous_product(model_net: PetriNet, model_net_im: Marking,

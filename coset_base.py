@@ -147,7 +147,8 @@ class PossibleExtension:
 
 class BranchingProcess:
 
-    def __init__(self, net: ExtendedNet) -> None:
+    def __init__(self,
+                 net: ExtendedSyncNet | ExtendedSyncNetStreaming) -> None:
         self.possible_extensions = PriorityQueue()
 
         # A BP is a set of conditions and events (nodes)
@@ -163,10 +164,72 @@ class BranchingProcess:
         self.cut_off_events: set[Event] = set()
 
         # A branching process has an underlying PetriNet
-        self.underlying_net: ExtendedNet = net
+        self.underlying_net: ExtendedSyncNet | ExtendedSyncNetStreaming = net
+
+    def is_co_related(self, conditions: frozenset[Condition]):
+        # Start from our conditions, follow down the local configuration via a queue of events
+        # Mark the input conditions of an event with the event it was visited from
+        # If we find a condition which was already visited from a different event there is a conflict
+        # Meanwhile, check if the conditions we are marking are in the set we are testing for co-relation
+        # If one is, they are in causal relation
+        queue: deque[Event] = deque()
+        marks = {}
+
+        # Starting conditions are visited from nothings, so we use a negative integer
+        for c in conditions:
+            if c.input_event is not None:
+                queue.append(c.input_event)
+
+        while len(queue) > 0:
+            item = queue.popleft()
+            visited_from = item
+            for c in item.input_conditions:
+                # Causal so not in co-relation
+                if c in conditions:
+                    return False
+
+                # This condition has been visited before
+                if c in marks:
+                    # It has been visited from a different transition
+                    if marks[c] != visited_from:
+                        return False
+                # If possible, add input event on the queue
+                elif c.input_event is not None:
+                    queue.append(c.input_event)
+                # Mark this condition
+                marks[c] = visited_from
+
+        return True
 
     def initialize_from_initial_marking(self, cost_mapping):
-        pass
+        for place in self.underlying_net.places:
+            self.conditions[place.properties[NetProperties.ID.name]] = set()
+
+        added_conditions = set()
+        for place in self.underlying_net.im:
+            condition = Condition(place.properties[NetProperties.ID.name])
+            self.conditions[place.properties[NetProperties.ID.name]].add(
+                condition)
+            added_conditions.add(condition)
+
+        transition_ids_to_check = set()
+        for condition in added_conditions:
+            # Basically any transition that is in the postset of a place in the marking of the co-set
+            transition_ids_to_check.update(
+                get_postset_ids(
+                    self.underlying_net.get_net_node_by_id(
+                        condition.net_place_id)))
+
+        new_possible_extensions = self.compute_pe(transition_ids_to_check)
+        # TODO make proper cost function
+        new_possible_extensions_with_cost = [
+            self.pe_to_astar_search(x, cost_mapping)
+            for x in new_possible_extensions
+        ]
+        self.possible_extensions.push_many(new_possible_extensions_with_cost)
+        # Update the seen extensions
+        # TODO check if this makes any sense
+        # self.extensions_seen.update((new_possible_extensions))
 
     def fire_configuration(self, configuration: Configuration):
         presets = Counter()
@@ -246,6 +309,38 @@ class BranchingProcess:
 
         return AStarItem(f, g, h, pe)
 
+    def compute_pe(
+        self, transition_ids_to_check
+    ) -> set[tuple[TransitionID, frozenset[Condition]]]:
+        # For each transition in the net, find a co-set which is a superset
+        # Those transitions are possible extensions
+        new_possible_extensions = set()
+
+        for transition_id in transition_ids_to_check:
+            transition = self.underlying_net.get_net_node_by_id(transition_id)
+            preset_ids = get_preset_ids(transition)
+            # Get conditions with place_id in preset_ids
+            conditions = []
+
+            for place_id in preset_ids:
+                conditions.append(self.conditions[place_id])
+
+            # Try all combinations of conditions for co-relation
+            combs = product(*conditions)
+            for comb in combs:
+                comb_set = frozenset(comb)
+                pe = PossibleExtension(
+                    transition.properties[NetProperties.ID.name], comb_set,
+                    None)
+                if pe not in self.extensions_seen and pe not in self.possible_extensions.in_pq:
+                    if self.is_co_related(comb_set):
+                        local_configuration = self.get_full_configuration_from_marking(
+                            comb_set)
+                        pe.local_configuration = local_configuration
+                        new_possible_extensions.add(pe)
+
+        return new_possible_extensions
+
     def astar(self, cost_mapping):
         pass
 
@@ -284,24 +379,26 @@ class BranchingProcess:
     def get_full_configuration_from_marking(
             self, marking: set[Condition]) -> Configuration:
         configuration = Configuration()
-        stack = deque()
+
         for condition in marking:
-            if condition not in configuration.nodes:
-                stack.append(condition)
-                configuration.nodes.add(condition)
-        while len(stack) != 0:
-            item = stack.pop()
-            configuration.nodes.add(item)
-            if isinstance(item, Event):
-                for condition in item.input_conditions:
-                    if condition not in configuration.nodes:
-                        stack.append(condition)
-            if isinstance(item, Condition):
-                if item.input_event is not None:
-                    if item.input_event not in configuration.nodes:
-                        stack.append(item.input_event)
+            self._get_full_configuration_from_marking_helper(
+                condition, configuration)
 
         return configuration
+
+    def _get_full_configuration_from_marking_helper(
+            self, condition: Condition, configuration: Configuration):
+        # No need to further explore here down this branch
+        if condition in configuration.nodes:
+            return
+
+        configuration.nodes.add(condition)
+        if condition.input_event is not None:
+            configuration.nodes.add(condition.input_event)
+
+            for c in condition.input_event.input_conditions:
+                self._get_full_configuration_from_marking_helper(
+                    c, configuration)
 
     def bp_marking_to_net_marking_ids(
             self, bp_marking: set[Condition]) -> set[PlaceID]:

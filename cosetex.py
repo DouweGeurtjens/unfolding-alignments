@@ -147,7 +147,7 @@ class PossibleExtension:
 
 class BranchingProcess:
 
-    def __init__(self, net: ExtendedNet) -> None:
+    def __init__(self, net: ExtendedSyncNet) -> None:
         self.possible_extensions = PriorityQueue()
 
         # A BP is a set of conditions and events (nodes)
@@ -167,7 +167,7 @@ class BranchingProcess:
         self.cut_off_events: set[Event] = set()
 
         # A branching process has an underlying PetriNet
-        self.underlying_net: ExtendedNet = net
+        self.underlying_net: ExtendedSyncNet = net
         for place in self.underlying_net.places:
             self.co_sets_by_place[place.properties[
                 NetProperties.ID.name]] = set()
@@ -592,7 +592,7 @@ def main():
         # if len(sync_net.transitions) > 150:
         #     view_petri_net(sync_net)
         print(len(sync_net.transitions))
-        sync_net_extended = ExtendedNet(sync_net, sync_im, sync_fm)
+        sync_net_extended = ExtendedSyncNet(sync_net, sync_im, sync_fm)
 
         bp = BranchingProcess(sync_net_extended)
 
