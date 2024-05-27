@@ -44,10 +44,8 @@ class BranchingProcessStandard(BranchingProcess):
                 if self.underlying_net.get_net_node_by_id(
                         list(added_conditions)
                     [0].net_place_id) in self.underlying_net.fm:
-                    print(
-                        f"Found alignment with g {astar_item.g} and f {astar_item.f}"
-                    )
-                    return added_conditions
+                    print(f"Found alignment with cost {astar_item.g}")
+                    return added_conditions, astar_item.g
 
             # Compute the  new  PE
             transition_ids_to_check = set()
@@ -110,7 +108,7 @@ if __name__ == "__main__":
         bp = BranchingProcessStandard(extended_net)
         bp.initialize_from_initial_marking(cost_mapping)
         with cProfile.Profile() as pr:
-            alignment = bp.astar(cost_mapping)
+            alignment, _ = bp.astar(cost_mapping)
             conf = bp.get_full_configuration_from_marking(alignment)
             view_petri_net(bp.convert_nodes_to_net(conf.nodes))
         pr.dump_stats("prof.prof")
