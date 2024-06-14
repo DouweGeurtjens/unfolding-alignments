@@ -8,6 +8,15 @@ import time
 from tqdm import tqdm
 from enum import Enum
 import random
+import re
+from functools import cmp_to_key
+import signal
+
+class TimeoutException(Exception):   # Custom exception class
+    pass
+
+def timeout_handler(signum, frame):   # Custom signal handler
+    raise TimeoutException
 
 class DeviationsOperations(Enum):
     REMOVE = 1
@@ -32,15 +41,15 @@ def view_model(data_filepath,model_filepath):
 def apply_trace_deviation(location_percentiles:list[float],operation,trace):
     trace_copy = deepcopy(trace)
     for percentile in location_percentiles:
-        index = len(trace_copy._list) * percentile
+        index = int((len(trace_copy._list)-1) * percentile)
         if operation ==DeviationsOperations.REMOVE.name:
             trace_copy._list.remove(trace_copy._list[index])
         if operation == DeviationsOperations.REPLACE_WITH_INVERSE_PERCENTILE.name:
             index_inverse = len(trace_copy._list) * (1-percentile)
             trace_copy._list[index]["concept:name"] = trace_copy._list[index_inverse]["concept:name"]
-    return trace_copy 
+    return trace_copy
 
-def run_coset_standard(model_net, model_im, model_fm, trace):
+def run_offline(model_net, model_im, model_fm, trace):
     cost_mapping = {
         MoveTypes.LOG.name: 10000,
         MoveTypes.MODEL.name: 10000,
@@ -53,113 +62,99 @@ def run_coset_standard(model_net, model_im, model_fm, trace):
     trace_net, trace_net_im, trace_net_fm = construct_trace_net(
             trace, "concept:name", "concept:name")
 
-    sync_net, sync_im, sync_fm = construct_synchronous_product(
+    sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
             model_net, model_im, model_fm, trace_net, trace_net_im,
             trace_net_fm)
         
-    sync_net_extended = ExtendedSyncNet(sync_net, sync_im, sync_fm)
+    sync_net_extended = ExtendedSyncNet(sync_net, sync_im, sync_fm,cost_function)
 
     bp = BranchingProcessStandard(sync_net_extended)
 
     bp.initialize_from_initial_marking(cost_mapping)
-    alignment,cost = bp.astar(cost_mapping)
+
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(100)
+    try:
+        alignment,cost = bp.astar(cost_mapping)
+    except TimeoutException:
+        return -1,bp.possible_extensions._queued,bp.possible_extensions._visited,-1
+
+    signal.alarm(0)
     elapsed_time = time.time() - start_time
     return elapsed_time,bp.possible_extensions._queued,bp.possible_extensions._visited,cost
 
 
-def run_coset_standard_remove_halfway(data_filepath, model_net,model_im,model_fm):
-    total_traces = 0
-    unf_q = []
-    unf_v = []
-    unf_elapsed_time = []
+def run_offline_remove_halfway(data_filepath, model_net,model_im,model_fm):
+    results = []
     xes_df = pm4py.read_xes(data_filepath)
 
     xes_el = convert_to_event_log(format_dataframe(xes_df))
     for trace in tqdm(xes_el):
         deviating_trace = apply_trace_deviation([0.5],DeviationsOperations.REMOVE.name,trace)
-        elapsed_time,q,v,cost = run_coset_standard(model_net,model_im,model_fm,deviating_trace)
-        unf_elapsed_time.append(elapsed_time)
-        unf_q.append(q)
-        unf_v.append(v)
-
-    results = {}
-    results["total_traces"] = total_traces
-    results["unf_q"] = unf_q
-    results["unf_v"] = unf_v
-    results["unf_elapsed_time"] = unf_elapsed_time
+        elapsed_time,q,v,cost = run_offline(model_net,model_im,model_fm,deviating_trace)
+        trace_result ={}
+        trace_result["elapsed_time"] = elapsed_time
+        trace_result["q"] = q
+        trace_result["v"] = v
+        trace_result["cost"] = cost
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
 
 
     return results
 
 
-def run_coset_standard_remove_end(data_filepath, model_net,model_im,model_fm):
-    total_traces = 0
-    unf_q = []
-    unf_v = []
-    unf_elapsed_time = []
+def run_offline_remove_end(data_filepath, model_net,model_im,model_fm):
+    results= []
     xes_df = pm4py.read_xes(data_filepath)
 
     xes_el = convert_to_event_log(format_dataframe(xes_df))
     for trace in tqdm(xes_el):
         deviating_trace = apply_trace_deviation([1],DeviationsOperations.REMOVE.name,trace)
-        elapsed_time,q,v,cost = run_coset_standard(model_net,model_im,model_fm,deviating_trace)
-        unf_elapsed_time.append(elapsed_time)
-        unf_q.append(q)
-        unf_v.append(v)
-
-    results = {}
-    results["total_traces"] = total_traces
-    results["unf_q"] = unf_q
-    results["unf_v"] = unf_v
-    results["unf_elapsed_time"] = unf_elapsed_time
-
+        elapsed_time,q,v,cost = run_offline(model_net,model_im,model_fm,deviating_trace)
+        trace_result ={}
+        trace_result["elapsed_time"] = elapsed_time
+        trace_result["q"] = q
+        trace_result["v"] = v
+        trace_result["cost"] = cost
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
 
     return results
 
-def run_coset_standard_remove_start(data_filepath, model_net,model_im,model_fm):
-    total_traces = 0
-    unf_q = []
-    unf_v = []
-    unf_elapsed_time = []
+def run_offline_remove_start(data_filepath, model_net,model_im,model_fm):
+    results=[]
     xes_df = pm4py.read_xes(data_filepath)
 
     xes_el = convert_to_event_log(format_dataframe(xes_df))
     for trace in tqdm(xes_el):
         deviating_trace = apply_trace_deviation([0],DeviationsOperations.REMOVE.name,trace)
-        elapsed_time,q,v,cost = run_coset_standard(model_net,model_im,model_fm,deviating_trace)
-        unf_elapsed_time.append(elapsed_time)
-        unf_q.append(q)
-        unf_v.append(v)
-
-    results = {}
-    results["total_traces"] = total_traces
-    results["unf_q"] = unf_q
-    results["unf_v"] = unf_v
-    results["unf_elapsed_time"] = unf_elapsed_time
+        elapsed_time,q,v,cost = run_offline(model_net,model_im,model_fm,deviating_trace)
+        trace_result ={}
+        trace_result["elapsed_time"] = elapsed_time
+        trace_result["q"] = q
+        trace_result["v"] = v
+        trace_result["cost"] = cost
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
 
 
     return results
 
-def run_coset_standard_no_deviations(data_filepath, model_net,model_im,model_fm):
-    total_traces = 0
-    unf_q = []
-    unf_v = []
-    unf_elapsed_time = []
+def run_offline_no_deviations(data_filepath, model_net,model_im,model_fm):
+    results = []
     xes_df = pm4py.read_xes(data_filepath)
 
     xes_el = convert_to_event_log(format_dataframe(xes_df))
     for trace in tqdm(xes_el):
-        elapsed_time,q,v,cost = run_coset_standard(model_net,model_im,model_fm,trace)
-        unf_elapsed_time.append(elapsed_time)
-        unf_q.append(q)
-        unf_v.append(v)
-
-    results = {}
-    results["total_traces"] = total_traces
-    results["unf_q"] = unf_q
-    results["unf_v"] = unf_v
-    results["unf_elapsed_time"] = unf_elapsed_time
-
+        elapsed_time,q,v,cost = run_offline(model_net,model_im,model_fm,trace)
+        trace_result ={}
+        trace_result["elapsed_time"] = elapsed_time
+        trace_result["q"] = q
+        trace_result["v"] = v
+        trace_result["cost"] = cost
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
 
     return results
 
@@ -193,7 +188,7 @@ def run_stream_no_deviations(data_filepath, model_filepath):
         # Initialize other stuffs
         trace_net, trace_net_im, trace_net_fm = construct_trace_net(
             operation_value, "concept:name", "concept:name")
-        sync_net, sync_im, sync_fm = construct_synchronous_product(
+        sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
             model_net, model_im, model_fm, trace_net, trace_net_im,
             trace_net_fm)
         
@@ -258,7 +253,7 @@ def preliminary():
 
         print(astar_alignment)
 
-        elapsed_time,q,v,cost= run_coset_standard(model_net,model_im,model_fm,trace)
+        elapsed_time,q,v,cost= run_offline(model_net,model_im,model_fm,trace)
         trace_result["unf_elapsed_time"] = elapsed_time
         trace_result["unf_q"] = q
         trace_result["unf_v"] = v
@@ -278,150 +273,67 @@ def preliminary():
         rstr = json.dumps(results, indent=4)
         wf.write(rstr)
 
+def compare_by_breadth_depth(filename1,filename2):
+    split1 = filename1.split("_")
+    b1 = int(re.search(r"\d+", split1[0]).group())
+    d1 = int(re.search(r"\d+", split1[1]).group())
+
+    split2 = filename2.split("_")
+    b2 = int(re.search(r"\d+", split2[0]).group())
+    d2 = int(re.search(r"\d+", split2[1]).group())
+    if b1 < b2:
+        return -1
+    if b1 > b2:
+        return 1
+    if b2 == b1:
+        if d1 < d2:
+            return -1
+        if d1 > d2:
+            return 1
+    return 0
+
+def run_artificial_model_offline(model_dir,result_dir,profile_cpu=False,profile_memory=False):
+    files_in_dir = os.listdir(model_dir)
+    files_in_dir.sort(key=cmp_to_key(compare_by_breadth_depth))
+    for f in files_in_dir:
+        if f.endswith(".ptml"):
+            continue
+        filename = f.removesuffix(".xes")
+        split1 = filename.split("_")
+        b1 = int(re.search(r"\d+", split1[0]).group())
+        d1 = int(re.search(r"\d+", split1[1]).group())
+
+        ptml = filename + ".ptml"
+        xes = filename + ".xes"
+        pt = pm4py.read_ptml(f"{model_dir}/{ptml}")
+        model_net, model_im, model_fm = pm4py.convert_to_petri_net(pt)
+        if profile_cpu:
+            pass
+
+        res = {}
+        print("Running no deviations...")
+        res["no_deviation"] = run_offline_no_deviations(f"{model_dir}/{xes}",model_net, model_im, model_fm)
+        print("Running start deviations...")
+        res["trace_deviation_start"] = run_offline_remove_start(f"{model_dir}/{xes}",model_net, model_im, model_fm)
+        print("Running halfway deviations...")
+        res["trace_deviation_halfway"] = run_offline_remove_halfway(f"{model_dir}/{xes}",model_net, model_im, model_fm)
+        print("Running end deviations...")
+        res["trace_deviation_end"] = run_offline_remove_end(f"{model_dir}/{xes}",model_net, model_im, model_fm)        
+        with open(f"{result_dir}/{filename}.json", "w") as wf:
+            rstr = json.dumps(res, indent=4)
+            wf.write(rstr)
+
 def main(profile_cpu=False,profile_memory=False):
-    # conc = os.listdir(CONCURRENT_MODEL_DIR)
-    # for f in conc:
-    #     if f.endswith(".ptml"):
-    #         continue
-    #     filename = f.removesuffix(".xes")
-    #     ptml = filename + ".ptml"
-    #     xes = filename + ".xes"
-    #     view_model(f"{CONCURRENT_MODEL_DIR}/{xes}",f"{CONCURRENT_MODEL_DIR}/{ptml}")
-    #     if profile_cpu:
-    #         with cProfile.Profile() as pr:
-    #             res = run_coset_standard_no_deviations(f"{CONCURRENT_MODEL_DIR}/{xes}",f"{CONCURRENT_MODEL_DIR}/{ptml}")
-    #         pr.dump_stats(f"{CONCURRENT_RESULT_DIR}/{filename}_no_deviations.prof")
-
-    #     res = run_coset_standard_no_deviations(f"{CONCURRENT_MODEL_DIR}/{xes}",f"{CONCURRENT_MODEL_DIR}/{ptml}")        
-    #     with open(f"{CONCURRENT_RESULT_DIR}/{filename}_no_deviations.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    #     res = run_coset_standard_1_deviation_at_start(f"{CONCURRENT_MODEL_DIR}/{xes}",f"{CONCURRENT_MODEL_DIR}/{ptml}")        
-    #     with open(f"{CONCURRENT_RESULT_DIR}/{filename}_1_deviation_at_start.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-
-    # conc_conc = os.listdir(CONCURRENT_CONCURRENT_NESTED_MODEL_DIR)
-    # for f in conc_conc:
-    #     if f.endswith(".ptml"):
-    #         continue
-    #     print(f)
-    #     filename = f.removesuffix(".xes")
-    #     ptml = filename + ".ptml"
-    #     xes = filename + ".xes"
-
-    #     if profile_cpu:
-    #         with cProfile.Profile() as pr:
-    #             res = run_coset_standard_no_deviations(f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/{xes}",f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/{ptml}")
-    #         pr.dump_stats(f"{CONCURRENT_CONCURRENT_NESTED_RESULT_DIR}/{filename}_no_deviations.prof")
-
-    #     res = run_coset_standard_no_deviations(f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/{xes}",f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{CONCURRENT_CONCURRENT_NESTED_RESULT_DIR}/{filename}_no_deviations.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    #     res = run_coset_standard_1_deviation_at_start(f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/{xes}",f"{CONCURRENT_CONCURRENT_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{CONCURRENT_CONCURRENT_NESTED_RESULT_DIR}/{filename}_1_deviation_at_start.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-
-    # conc_ex = os.listdir(CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR)
-    # for f in conc_ex:
-    #     if f.endswith(".ptml"):
-    #         continue
-    #     filename = f.removesuffix(".xes")
-    #     ptml = filename + ".ptml"
-    #     xes = filename + ".xes"
-
-    #     if profile_cpu:
-    #         with cProfile.Profile() as pr:
-    #             res = run_coset_standard_no_deviations(f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/{xes}",f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/{ptml}")
-    #         pr.dump_stats(f"{CONCURRENT_EXCLUSIVE_NESTED_RESULT_DIR}/{filename}_no_deviations.prof")
-
-    #     res = run_coset_standard_no_deviations(f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/{xes}",f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{CONCURRENT_EXCLUSIVE_NESTED_RESULT_DIR}/{filename}_no_deviations.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    #     res = run_coset_standard_1_deviation_at_start(f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/{xes}",f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{CONCURRENT_EXCLUSIVE_NESTED_RESULT_DIR}/{filename}_1_deviation_at_start.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    # ex = os.listdir(EXCLUSIVE_MODEL_DIR)
-    # for f in ex:
-    #     if f.endswith(".ptml"):
-    #         continue
-    #     filename = f.removesuffix(".xes")
-    #     ptml = filename + ".ptml"
-    #     xes = filename + ".xes"
-
-    #     if profile_cpu:
-    #         with cProfile.Profile() as pr:
-    #             res = run_coset_standard_no_deviations(f"{EXCLUSIVE_MODEL_DIR}/{xes}",f"{EXCLUSIVE_MODEL_DIR}/{ptml}")
-    #         pr.dump_stats(f"{EXCLUSIVE_RESULT_DIR}/{filename}_no_deviations.prof")
-
-    #     res = run_coset_standard_no_deviations(f"{EXCLUSIVE_MODEL_DIR}/{xes}",f"{EXCLUSIVE_MODEL_DIR}/{ptml}")
-    #     with open(f"{EXCLUSIVE_RESULT_DIR}/{filename}_no_deviations.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    #     res = run_coset_standard_1_deviation_at_start(f"{EXCLUSIVE_MODEL_DIR}/{xes}",f"{EXCLUSIVE_MODEL_DIR}/{ptml}")
-    #     with open(f"{EXCLUSIVE_RESULT_DIR}/{filename}_1_deviation_at_start.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    # ex_conc = os.listdir(EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR)
-    # for f in ex_conc:
-    #     if f.endswith(".ptml"):
-    #         continue
-    #     filename = f.removesuffix(".xes")
-    #     ptml = filename + ".ptml"
-    #     xes = filename + ".xes"
-
-    #     if profile_cpu:
-    #         with cProfile.Profile() as pr:
-    #             res = run_coset_standard_no_deviations(f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/{xes}",f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/{ptml}")
-    #         pr.dump_stats(f"{EXCLUSIVE_CONCURRENT_NESTED_RESULT_DIR}/{filename}_no_deviations.prof")
-
-    #     res = run_coset_standard_no_deviations(f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/{xes}",f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{EXCLUSIVE_CONCURRENT_NESTED_RESULT_DIR}/{filename}_no_deviations.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    #     res = run_coset_standard_1_deviation_at_start(f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/{xes}",f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{EXCLUSIVE_CONCURRENT_NESTED_RESULT_DIR}/{filename}_1_deviation_at_start.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-
-    # ex_ex = os.listdir(EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR)
-    # for f in ex_ex:
-    #     if f.endswith(".ptml"):
-    #         continue
-    #     filename = f.removesuffix(".xes")
-    #     ptml = filename + ".ptml"
-    #     xes = filename + ".xes"
-
-    #     if profile_cpu:
-    #         with cProfile.Profile() as pr:
-    #             res = run_coset_standard_no_deviations(f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/{xes}",f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/{ptml}")
-    #         pr.dump_stats(f"{EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR}/{filename}_no_deviations.prof")   
-
-    #     res = run_coset_standard_no_deviations(f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/{xes}",f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR}/{filename}_no_deviations.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-
-    #     res = run_coset_standard_1_deviation_at_start(f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/{xes}",f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/{ptml}")
-    #     with open(f"{EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR}/{filename}_1_deviation_at_start.json", "w") as wf:
-    #         rstr = json.dumps(res, indent=4)
-    #         wf.write(rstr)
-    pass
+    # TODO finish the concurrent ones
+    dir_pairs = [
+                # (CONCURRENT_MODEL_DIR,CONCURRENT_RESULT_DIR),
+                # (CONCURRENT_CONCURRENT_NESTED_MODEL_DIR,CONCURRENT_CONCURRENT_NESTED_RESULT_DIR),
+                # (EXCLUSIVE_MODEL_DIR,EXCLUSIVE_RESULT_DIR),
+                # (EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR,EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR),
+                ]
+    for model_dir,result_dir in dir_pairs:
+        run_artificial_model_offline(model_dir,result_dir,profile_cpu,profile_memory)
 
 
 if __name__ == "__main__":
-    preliminary()
+    main()

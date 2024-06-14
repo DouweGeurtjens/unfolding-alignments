@@ -6,14 +6,7 @@ import pm4py
 import random
 from itertools import product
 from settings import *
-
-
-class Operators(Enum):
-    SEQUENCE = "->"
-    PARALLEL = "+"
-    XOR = "X"
-    CHOICE = "O"
-    BINARY_LOOP = "*"
+from copy import copy
 
 
 class ActivityGenerator:
@@ -418,13 +411,13 @@ class Block:
         self.children: list[Block] = children
         self.parent: Block = parent
 
-    def build(self, pt: str, operator: Operators,
+    def build(self, pt: str, operator,
               activity_generator: ActivityGenerator) -> str:
         pt += operator.value + "("
 
         for i in range(self.breadth):
             # Always follow with a sequence to build the depth
-            pt += Operators.SEQUENCE.value + "("
+            pt += pm4py.objects.process_tree.obj.Operator.SEQUENCE.value + "("
 
             # Build depth, each activity followed by a comma
             for _ in range(self.depth):
@@ -460,7 +453,9 @@ class ConcurrentBlock(Block):
         super().__init__(breadth, depth, children, parent)
 
     def build(self, pt: str, activity_generator) -> str:
-        return super().build(pt, Operators.PARALLEL, activity_generator)
+        return super().build(pt,
+                             pm4py.objects.process_tree.obj.Operator.PARALLEL,
+                             activity_generator)
 
 
 class ExclusiveBlock(Block):
@@ -473,7 +468,8 @@ class ExclusiveBlock(Block):
         super().__init__(breadth, depth, children, parent)
 
     def build(self, pt: str, activity_generator):
-        return super().build(pt, Operators.XOR, activity_generator)
+        return super().build(pt, pm4py.objects.process_tree.obj.Operator.XOR,
+                             activity_generator)
 
 
 class LoopBlock(Block):
@@ -486,7 +482,23 @@ class LoopBlock(Block):
         super().__init__(breadth, depth, children, parent)
 
     def build(self, pt: str, activity_generator) -> str:
-        return super().build(pt, Operators.BINARY_LOOP, activity_generator)
+        return super().build(pt, pm4py.objects.process_tree.obj.Operator.LOOP,
+                             activity_generator)
+
+
+class SequenceBlock(Block):
+
+    def __init__(self,
+                 breadth: int,
+                 depth: int,
+                 children,
+                 parent=None) -> None:
+        super().__init__(breadth, depth, children, parent)
+
+    def build(self, pt: str, activity_generator) -> str:
+        return super().build(pt,
+                             pm4py.objects.process_tree.obj.Operator.SEQUENCE,
+                             activity_generator)
 
 
 def main():
@@ -537,60 +549,6 @@ def main():
                 )
                 # pm4py.view_petri_net(*pm4py.convert_to_petri_net(pt))
 
-    # Nested concurrency in exclusive
-    for breadth in range(2, 3):
-        for depth in range(1, 6):
-            nesting_block_base = ConcurrentBlock(breadth, depth, [])
-            for nest in range(1, 6):
-                if nest == 1:
-                    nesting_block = nesting_block_base
-                else:
-                    nesting_block = ConcurrentBlock(
-                        breadth, depth, [nesting_block_base] * breadth)
-                    nesting_block_base = nesting_block
-
-                # Nested once
-                activity_generator = ActivityGenerator()
-                c = ExclusiveBlock(breadth, depth, [nesting_block] * breadth)
-                m = Model(c)
-                pt = m.build(activity_generator)
-                pm4py.write_ptml(
-                    pt,
-                    f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-                )
-                log = generate_log(pt, 50)
-                pm4py.write_xes(
-                    log,
-                    f"{CONCURRENT_EXCLUSIVE_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-                )
-
-    # Nested exclusive in concurrency
-    for breadth in range(2, 3):
-        for depth in range(1, 6):
-            nesting_block_base = ExclusiveBlock(breadth, depth, [])
-            for nest in range(1, 6):
-                if nest == 1:
-                    nesting_block = nesting_block_base
-                else:
-                    nesting_block = ConcurrentBlock(
-                        breadth, depth, [nesting_block_base] * breadth)
-                    nesting_block_base = nesting_block
-
-                # Nested once
-                activity_generator = ActivityGenerator()
-                c = ConcurrentBlock(breadth, depth, [nesting_block] * breadth)
-                m = Model(c)
-                pt = m.build(activity_generator)
-                pm4py.write_ptml(
-                    pt,
-                    f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-                )
-                log = generate_log(pt, 50)
-                pm4py.write_xes(
-                    log,
-                    f"{EXCLUSIVE_CONCURRENT_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
-                )
-
     # Nested exclusive in exclusive
     for breadth in range(2, 3):
         for depth in range(1, 6):
@@ -620,4 +578,43 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    total_length = 20
+    loop_counter = 5
+    for loop_length in range(4, total_length):
+        tail_length = total_length - loop_length - 1
+        tail = SequenceBlock(1, tail_length, [])
+        loop = LoopBlock(1, loop_length, [])
+        start = SequenceBlock(2, 1, [loop, tail])
+        activity_generator = ActivityGenerator()
+        m = Model(start)
+        pt = m.build(activity_generator)
+        pm4py.write_ptml(
+            pt, f"{LOOP_MODEL_DIR}/b1_d{total_length}_l{loop_length}")
+
+        # Flatten PT
+        q = []
+        q.extend(pt.children)
+        loop_part = None
+        while loop_part is None:
+            v = q.pop(-1)
+            if v.operator and v.operator == pm4py.objects.process_tree.obj.Operator.LOOP:
+                loop_part = v
+            else:
+                q.extend(v.children)
+        loop_part.operator = pm4py.objects.process_tree.obj.Operator.SEQUENCE
+        c = copy(loop_part.children[0].children)
+
+        full_log = pm4py.objects.log.obj.EventLog()
+        for i in range(loop_counter):
+            if i > 0:
+                loop_part.children[0].children.extend(c)
+            view_petri_net(*convert_to_petri_net(pt))
+            log = generate_log(pt, 10)
+            for t in log:
+                t.attributes[pm4py.util.xes_constants.DEFAULT_NAME_KEY] = str(
+                    int(t.attributes[
+                        pm4py.util.xes_constants.DEFAULT_NAME_KEY]) + 10 * i)
+                full_log.append(t)
+        pm4py.write_xes(full_log,
+                        f"{LOOP_MODEL_DIR}/b1_d{total_length}_l{loop_length}")
+    # main()

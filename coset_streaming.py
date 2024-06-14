@@ -53,7 +53,7 @@ class BranchingProcessStream(BranchingProcess):
         # TODO how to impmlement?
         # self.unf_elapsed_time_per_iteration = {}
 
-    def re_initialize(self, cost_mapping, transition_ids_to_check):
+    def re_initialize(self, transition_ids_to_check):
         # TODO don't need to check all transitions maybe? only those affected by the
         for place in self.underlying_net.places:
             if place.properties[NetProperties.ID.name] not in self.conditions:
@@ -61,10 +61,8 @@ class BranchingProcessStream(BranchingProcess):
                     NetProperties.ID.name]] = set()
 
         new_possible_extensions = self.compute_pe(transition_ids_to_check)
-        # TODO make proper cost function
         new_possible_extensions_with_cost = [
-            self.pe_to_astar_search(x, cost_mapping)
-            for x in new_possible_extensions
+            self.pe_to_astar_search(x) for x in new_possible_extensions
         ]
         self.possible_extensions.push_many(new_possible_extensions_with_cost)
         # Update the seen extensions
@@ -146,7 +144,7 @@ class BranchingProcessStream(BranchingProcess):
                 self.unf_v_per_iteration[
                     self.iteration] = self.possible_extensions._visited
 
-    def astar(self, cost_mapping, operation, work_time):
+    def astar(self, operation, work_time):
         check_final_marking = False
         # Set up additional stopping conditions
         if operation == "end":
@@ -199,8 +197,7 @@ class BranchingProcessStream(BranchingProcess):
 
             # Compute new costs for each PE
             new_possible_extensions_with_cost = [
-                self.pe_to_astar_search(x, cost_mapping)
-                for x in new_possible_extensions
+                self.pe_to_astar_search(x) for x in new_possible_extensions
             ]
             # Add the PEs with cost onto the priority queue
             self.possible_extensions.push_many(
@@ -214,20 +211,21 @@ class BranchingProcessStream(BranchingProcess):
             #     end = time.time_ns()
             #     duration = end - start
 
-    def alignment_streaming(self, model_net, model_im, model_fm, cost_mapping):
+    def alignment_streaming(self, model_net, model_im, model_fm):
         while len(self.stream) != 0:
             operation, operation_value = self.stream.pop(0)
             if operation == "trace":
                 trace_net, trace_net_im, trace_net_fm = construct_trace_net(
                     operation_value, "concept:name", "concept:name")
-                sync_net, sync_im, sync_fm = construct_synchronous_product(
+
+                sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
                     model_net, model_im, model_fm, trace_net, trace_net_im,
                     trace_net_fm)
                 # view_petri_net(sync_net)
                 update_new_synchronous_product_streaming(
                     self.underlying_net, sync_net)
                 extended_net = ExtendedSyncNetStreaming(
-                    sync_net, sync_im, sync_fm, trace_net_fm)
+                    sync_net, sync_im, sync_fm, trace_net_fm, cost_function)
 
                 old_transition_ids = set(
                     x.properties[NetProperties.ID.name]
@@ -238,30 +236,22 @@ class BranchingProcessStream(BranchingProcess):
                     old_transition_ids)
 
                 self.underlying_net = extended_net
-                self.re_initialize(cost_mapping, transition_ids_to_check)
+                self.re_initialize(transition_ids_to_check)
                 self.iteration += 1
             if operation == "work":
-                alignment = self.astar(cost_mapping, operation,
-                                       operation_value)
+                alignment = self.astar(operation, operation_value)
                 # # If we return something we're done
                 # if alignment:
                 #     return alignment
 
         # Stream ran out, continue processing
-        alignment = self.astar(cost_mapping, "end", float("inf"))
+        alignment = self.astar("end", float("inf"))
         # If we return something we're done
         print("done")
         return alignment
 
 
 if __name__ == "__main__":
-    cost_mapping = {
-        MoveTypes.LOG.name: 1000,
-        MoveTypes.MODEL.name: 1000,
-        MoveTypes.SYNC.name: 0,
-        MoveTypes.MODEL_SILENT.name: 1,
-        MoveTypes.DUMMY.name: 0
-    }
     # model_net, model_im, model_fm = import_from_tpn("./inthelarge/prAm6.tpn")
     # xes_df = pm4py.read_xes("./inthelarge/prAm6.xes")
     # model_net, model_im, model_fm = pm4py.read_pnml(
@@ -289,10 +279,9 @@ if __name__ == "__main__":
                                                 trace_net_fm)
         # Start balling
         bp = BranchingProcessStream(extended_net, stream)
-        bp.initialize_from_initial_marking(cost_mapping)
+        bp.initialize_from_initial_marking()
         view_petri_net(sync_net)
-        final_alignment = bp.alignment_streaming(model_net, model_im, model_fm,
-                                                 cost_mapping)
+        final_alignment = bp.alignment_streaming(model_net, model_im, model_fm)
         conf = bp.get_full_configuration_from_marking(final_alignment)
         net = bp.convert_nodes_to_net(conf.nodes)
         view_petri_net(net)
@@ -321,8 +310,8 @@ if __name__ == "__main__":
                                                     trace_net_fm)
             # Start balling
             bp = BranchingProcessStream(extended_net, None)
-            bp.initialize_from_initial_marking(cost_mapping)
-            final_alignment = bp.astar(cost_mapping, "work", None)
+            bp.initialize_from_initial_marking()
+            final_alignment = bp.astar("work", None)
             # conf = bp.get_full_configuration_from_marking(final_alignment)
             # net = bp.convert_nodes_to_net(conf.nodes)
             # view_petri_net(net)

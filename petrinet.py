@@ -41,11 +41,13 @@ class ExtendedSyncNet(PetriNet):
         sync_net: PetriNet,
         sync_im: Marking,
         sync_fm: Marking,
+        cost_function: dict,
     ):
         super().__init__(sync_net.name, sync_net.places, sync_net.transitions,
                          sync_net.arcs, sync_net.properties)
         self.im = sync_im
         self.fm = sync_fm
+        self.cost_function = cost_function
         self._extend_net()
         self.id_to_node_mapping = self._build_id_to_node_mapping()
 
@@ -87,8 +89,8 @@ class ExtendedSyncNet(PetriNet):
 class ExtendedSyncNetStreaming(ExtendedSyncNet):
 
     def __init__(self, sync_net: PetriNet, sync_im: Marking, sync_fm: Marking,
-                 trace_fm: Marking):
-        super().__init__(sync_net, sync_im, sync_fm)
+                 trace_fm: Marking, cost_function: dict):
+        super().__init__(sync_net, sync_im, sync_fm, cost_function)
         # To find the endpoint of the perfix alignment
         self.trace_fm = Marking()
         for p1 in trace_fm:
@@ -309,7 +311,22 @@ def construct_synchronous_product(model_net: PetriNet, model_net_im: Marking,
     sync_fm = Marking()
     sync_fm[dummy_end_place] = 1
 
-    return sync_net, sync_im, sync_fm
+    # Make cost mapping
+    cost_mapping = {}
+    for t in sync_net.transitions:
+        if t.properties[NetProperties.MOVE_TYPE.name] == MoveTypes.LOG.name:
+            cost_mapping[t] = 10000
+        if t.properties[NetProperties.MOVE_TYPE.name] == MoveTypes.MODEL.name:
+            cost_mapping[t] = 10000
+        if t.properties[NetProperties.MOVE_TYPE.name] == MoveTypes.DUMMY.name:
+            cost_mapping[t] = 0
+        if t.properties[NetProperties.MOVE_TYPE.name] == MoveTypes.SYNC.name:
+            cost_mapping[t] = 0
+        if t.properties[
+                NetProperties.MOVE_TYPE.name] == MoveTypes.MODEL_SILENT.name:
+            cost_mapping[t] = 1
+
+    return sync_net, sync_im, sync_fm, cost_mapping
 
 
 def import_from_tpn(path):

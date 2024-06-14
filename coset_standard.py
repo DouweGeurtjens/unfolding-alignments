@@ -24,7 +24,7 @@ class BranchingProcessStandard(BranchingProcess):
     def __init__(self, net: ExtendedSyncNet) -> None:
         super().__init__(net)
 
-    def astar(self, cost_mapping):
+    def astar(self):
         while len(self.possible_extensions.pq) > 0:
             astar_item: AStarItem = self.possible_extensions.pop()
             self.extensions_seen.add(astar_item.pe)
@@ -44,7 +44,7 @@ class BranchingProcessStandard(BranchingProcess):
                 if self.underlying_net.get_net_node_by_id(
                         list(added_conditions)
                     [0].net_place_id) in self.underlying_net.fm:
-                    print(f"Found alignment with cost {astar_item.g}")
+                    # print(f"Found alignment with cost {astar_item.g}")
                     return added_conditions, astar_item.g
 
             # Compute the  new  PE
@@ -60,8 +60,7 @@ class BranchingProcessStandard(BranchingProcess):
 
             # Compute new costs for each PE
             new_possible_extensions_with_cost = [
-                self.pe_to_astar_search(x, cost_mapping)
-                for x in new_possible_extensions
+                self.pe_to_astar_search(x) for x in new_possible_extensions
             ]
             # Add the PEs with cost onto the priority queue
             self.possible_extensions.push_many(
@@ -73,13 +72,6 @@ class BranchingProcessStandard(BranchingProcess):
 
 
 if __name__ == "__main__":
-    cost_mapping = {
-        MoveTypes.LOG.name: 1000,
-        MoveTypes.MODEL.name: 1000,
-        MoveTypes.SYNC.name: 0,
-        MoveTypes.MODEL_SILENT.name: 1,
-        MoveTypes.DUMMY.name: 0
-    }
     # model_net, model_im, model_fm = import_from_tpn("./inthelarge/prAm6.tpn")
     # xes_df = pm4py.read_xes("./inthelarge/prAm6.xes")
     # model_net, model_im, model_fm = pm4py.read_pnml(
@@ -87,7 +79,7 @@ if __name__ == "__main__":
     # xes_df = pm4py.read_xes("./banktransfer/logs/2000-all-nonoise.xes")
     xes_df = pm4py.read_xes("data/Sepsis Cases - Event Log.xes")
     model_net, model_im, model_fm = discover_petri_net_inductive(
-        xes_df, noise_threshold=0)
+        xes_df, noise_threshold=0.5)
     xes_el = convert_to_event_log(format_dataframe(xes_df))
     # config = bp.get_full_configuration_from_marking(alignment)
     # alignment_net = bp.convert_nodes_to_net(config.nodes)
@@ -100,15 +92,18 @@ if __name__ == "__main__":
         # trace._list.remove(rm_e)
         trace_net, trace_net_im, trace_net_fm = construct_trace_net(
             trace, "concept:name", "concept:name")
-        sync_net, sync_im, sync_fm = construct_synchronous_product(
+        sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
             model_net, model_im, model_fm, trace_net, trace_net_im,
             trace_net_fm)
-        extended_net = ExtendedSyncNet(sync_net, sync_im, sync_fm)
+        extended_net = ExtendedSyncNet(sync_net, sync_im, sync_fm,
+                                       cost_function)
+        if len(sync_net.transitions) < 200:
+            continue
         print(len(sync_net.transitions))
         bp = BranchingProcessStandard(extended_net)
-        bp.initialize_from_initial_marking(cost_mapping)
+        bp.initialize_from_initial_marking()
         with cProfile.Profile() as pr:
-            alignment, _ = bp.astar(cost_mapping)
+            alignment, _ = bp.astar()
             conf = bp.get_full_configuration_from_marking(alignment)
             view_petri_net(bp.convert_nodes_to_net(conf.nodes))
         pr.dump_stats("prof.prof")

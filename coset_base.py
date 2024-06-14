@@ -201,7 +201,7 @@ class BranchingProcess:
 
         return True
 
-    def initialize_from_initial_marking(self, cost_mapping):
+    def initialize_from_initial_marking(self):
         for place in self.underlying_net.places:
             self.conditions[place.properties[NetProperties.ID.name]] = set()
 
@@ -223,8 +223,7 @@ class BranchingProcess:
         new_possible_extensions = self.compute_pe(transition_ids_to_check)
         # TODO make proper cost function
         new_possible_extensions_with_cost = [
-            self.pe_to_astar_search(x, cost_mapping)
-            for x in new_possible_extensions
+            self.pe_to_astar_search(x) for x in new_possible_extensions
         ]
         self.possible_extensions.push_many(new_possible_extensions_with_cost)
         # Update the seen extensions
@@ -264,12 +263,11 @@ class BranchingProcess:
 
         return False
 
-    def get_configuration_cost(self, configuration: Configuration,
-                               cost_mapping):
+    def get_configuration_cost(self, configuration: Configuration):
         configuration_cost = 0
         for node in configuration.nodes:
             if isinstance(node, Event):
-                configuration_cost += cost_mapping[
+                configuration_cost += self.underlying_net.cost_function[
                     self.underlying_net.get_net_node_by_id(
                         node.net_transition_id).properties[
                             NetProperties.MOVE_TYPE.name]]
@@ -293,18 +291,38 @@ class BranchingProcess:
     #   Only do this if it's not already on the heapq
     #   TODO see todo for simplification
     # When a configuration reaches the FM, it's done and we found the least-cost unfolding
-    def pe_to_astar_search(self, pe: PossibleExtension, cost_mapping):
+    def pe_to_astar_search(self, pe: PossibleExtension):
         # NOTE the configuration does not yet include the possible extension
         configuration_cost = self.get_configuration_cost(
-            pe.local_configuration, cost_mapping)
+            pe.local_configuration)
 
         # Get the cost of this transition
-        pe_cost = cost_mapping[self.underlying_net.get_net_node_by_id(
-            pe.transition_id).properties[NetProperties.MOVE_TYPE.name]]
+        pe_cost = self.underlying_net.cost_function[
+            self.underlying_net.get_net_node_by_id(
+                pe.transition_id).properties[NetProperties.MOVE_TYPE.name]]
+
+        configuration_marking = self.fire_configuration(pe.local_configuration)
+
+        transition_preset = get_preset(
+            self.underlying_net.get_net_node_by_id(pe.transition_id))
+        transition_postset = get_postset(
+            self.underlying_net.get_net_node_by_id(pe.transition_id))
+
+        im = Marking()
+        for c in configuration_marking:
+            if self.underlying_net.get_net_node_by_id(
+                    c) not in transition_preset:
+                im[self.underlying_net.get_net_node_by_id(c)] = 1
+        for c in transition_postset:
+            im[c] = 1
 
         # Sum the cost of the configuration and the cost of this transition, since this transition is not yet in the configuration
         g = configuration_cost + pe_cost
-        h = 0
+        h = pm4py.solve_marking_equation(self.underlying_net, im,
+                                         self.underlying_net.fm,
+                                         self.underlying_net.cost_function)
+        if h == None:
+            print("FUg")
         f = g + h
 
         return AStarItem(f, g, h, pe)
@@ -341,7 +359,7 @@ class BranchingProcess:
 
         return new_possible_extensions
 
-    def astar(self, cost_mapping):
+    def astar(self):
         pass
 
     def extension_to_bp_node(self, extension: PossibleExtension,

@@ -3,6 +3,7 @@ from settings import *
 import json
 import matplotlib.pyplot as plt
 import re
+import pm4py
 
 
 class ModelParameters:
@@ -23,7 +24,9 @@ def get_parameters_from_filename(filename: str):
     split = filename.split("_")
     b = int(re.search(r"\d+", split[0]).group())
     d = int(re.search(r"\d+", split[1]).group())
-    nested = re.match(r"[n]{1}\d+", split[2])
+    nested = None
+    if len(split) > 2:
+        nested = re.match(r"[n]{1}\d+", split[2])
     if nested is not None:
         n = int(re.search(re.compile(r"\d+"), split[2]).group())
     else:
@@ -31,40 +34,144 @@ def get_parameters_from_filename(filename: str):
     return ModelParameters(b, d, n)
 
 
-# The scaling for co-sets - time should be the same regardless of model structure
-def compare_co_t_plots():
+def v_transitions_plots():
+    dir_pairs = [(CONCURRENT_RESULT_DIR, CONCURRENT_MODEL_DIR),
+                 (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR,
+                  CONCURRENT_CONCURRENT_NESTED_MODEL_DIR),
+                 (EXCLUSIVE_RESULT_DIR, EXCLUSIVE_MODEL_DIR),
+                 (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR,
+                  EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR)]
+    colors = ["pink", "red", "turquoise", "blue"]
+    color_index = 0
+    fig_no_deviations = plt.figure()
+    fig_no_deviations.suptitle("no deviations")
+    ax_no_deviations = fig_no_deviations.add_subplot()
+    ax_no_deviations.set_xlabel("transitions")
+    ax_no_deviations.set_ylabel("visited states")
+
+    fig_start_deviations = plt.figure()
+    fig_start_deviations.suptitle("start deviations")
+    ax_start_deviations = fig_start_deviations.add_subplot()
+    ax_start_deviations.set_xlabel("transitions")
+    ax_start_deviations.set_ylabel("visited states")
+
+    fig_halfway_deviations = plt.figure()
+    fig_halfway_deviations.suptitle("halfway deviations")
+    ax_halfway_deviations = fig_halfway_deviations.add_subplot()
+    ax_halfway_deviations.set_xlabel("transitions")
+    ax_halfway_deviations.set_ylabel("visited states")
+
+    fig_end_deviations = plt.figure()
+    fig_end_deviations.suptitle("end deviations")
+    ax_end_deviations = fig_end_deviations.add_subplot()
+    ax_end_deviations.set_xlabel("transitions")
+    ax_end_deviations.set_ylabel("visited states")
+    for res_dir, model_dir in dir_pairs:
+        color = colors[color_index]
+        color_index += 1
+        res_files = os.listdir(res_dir)
+        model_files = os.listdir(model_dir)
+        for res_file in res_files:
+            if res_file.endswith(".prof"):
+                continue
+
+            # Get model file that matches this result
+            for model_file in model_files:
+                if model_file.endswith(".xes"):
+                    continue
+                if res_file.split(".")[0] == model_file.split(".")[0]:
+                    pt = pm4py.read_ptml(f"{model_dir}/{model_file}")
+                    model_net, model_im, model_fm = pm4py.convert_to_petri_net(
+                        pt)
+                    transitions = len(model_net.transitions)
+
+            with open(f"{res_dir}/{res_file}") as rf:
+                contents = json.load(rf)
+            v_no_deviations = [
+                x["v"] for x in contents["no_deviation"]
+                # if x["elapsed_time"] != -1
+            ]
+            v_start_deviations = [
+                x["v"] for x in contents["trace_deviation_start"]
+                # if x["elapsed_time"] != -1
+            ]
+            v_halfway_deviations = [
+                x["v"] for x in contents["trace_deviation_halfway"]
+                # if x["elapsed_time"] != -1
+            ]
+            v_end_deviations = [
+                x["v"] for x in contents["trace_deviation_end"]
+                # if x["elapsed_time"] != -1
+            ]
+            try:
+                avg_v_no_deviations = sum(v_no_deviations) / len(
+                    v_no_deviations)
+                ax_no_deviations.scatter(transitions,
+                                         avg_v_no_deviations,
+                                         c=color)
+            except:
+                pass
+            try:
+                avg_v_start_deviations = sum(v_start_deviations) / len(
+                    v_start_deviations)
+                ax_start_deviations.scatter(transitions,
+                                            avg_v_start_deviations,
+                                            c=color)
+            except:
+                pass
+            try:
+                avg_v_halfway_deviations = sum(v_halfway_deviations) / len(
+                    v_halfway_deviations)
+                ax_halfway_deviations.scatter(transitions,
+                                              avg_v_halfway_deviations,
+                                              c=color)
+            except:
+                pass
+            try:
+                avg_v_end_deviations = sum(v_end_deviations) / len(
+                    v_end_deviations)
+                ax_end_deviations.scatter(transitions,
+                                          avg_v_end_deviations,
+                                          c=color)
+            except:
+                pass
+    plt.show()
+
+
+# The scaling for visisted - time should be the same regardless of model structure
+def compare_v_t_plots():
     dirs = [
         CONCURRENT_RESULT_DIR,
         CONCURRENT_CONCURRENT_NESTED_RESULT_DIR,
-        CONCURRENT_EXCLUSIVE_NESTED_RESULT_DIR,
         EXCLUSIVE_RESULT_DIR,
-        EXCLUSIVE_CONCURRENT_NESTED_RESULT_DIR,
         EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR,
     ]
     fig_total = plt.figure()
     fig_total.suptitle("total")
     ax_total = fig_total.add_subplot()
-    ax_total.set_xlabel("co")
+    ax_total.set_xlabel("v")
     ax_total.set_ylabel("t")
     for dir_name in dirs:
         dir = os.listdir(dir_name)
 
-        fig_co_t = plt.figure()
-        fig_co_t.suptitle(dir_name)
-        ax_co_t = fig_co_t.add_subplot()
-        ax_co_t.set_xlabel("co")
-        ax_co_t.set_ylabel("t")
+        fig_v_t = plt.figure()
+        fig_v_t.suptitle(dir_name)
+        ax_v_t = fig_v_t.add_subplot()
+        ax_v_t.set_xlabel("v")
+        ax_v_t.set_ylabel("t")
         for f in dir:
             if f.endswith(".prof"):
                 continue
             params = get_parameters_from_filename(f)
             with open(f"{dir_name}/{f}") as rf:
                 contents = json.load(rf)
-            avg_co = sum(contents["unf_co"]) / len(contents["unf_co"])
-            avg_t = sum(contents["unf_elapsed_time"]) / len(
-                contents["unf_elapsed_time"])
-            ax_co_t.scatter(avg_co, avg_t)
-            ax_total.scatter(avg_co, avg_t)
+            subcontents = contents["no_deviation"]
+            v = [x["v"] for x in subcontents]
+            t = [x["elapsed_time"] for x in subcontents]
+            avg_v = sum(v) / len(v)
+            avg_t = sum(t) / len(t)
+            ax_v_t.scatter(avg_v, avg_t)
+            ax_total.scatter(avg_v, avg_t)
     plt.show()
 
 
@@ -72,10 +179,10 @@ def plot_basic(b=None, d=None):
     dir_name = CONCURRENT_RESULT_DIR
     res_dir = os.listdir(dir_name)
 
-    fig_co_t = plt.figure()
-    ax_co_t = fig_co_t.add_subplot()
-    ax_co_t.set_xlabel("co")
-    ax_co_t.set_ylabel("t")
+    fig_v_t = plt.figure()
+    ax_v_t = fig_v_t.add_subplot()
+    ax_v_t.set_xlabel("v")
+    ax_v_t.set_ylabel("t")
 
     fig_q = plt.figure()
     fig_v = plt.figure()
@@ -126,12 +233,14 @@ def plot_basic(b=None, d=None):
         params = get_parameters_from_filename(f)
         with open(f"{dir_name}/{f}") as rf:
             contents = json.load(rf)
-        avg_co = sum(contents["unf_co"]) / len(contents["unf_co"])
-        avg_q = sum(contents["unf_q"]) / len(contents["unf_q"])
-        avg_v = sum(contents["unf_v"]) / len(contents["unf_v"])
-        avg_t = sum(contents["unf_elapsed_time"]) / len(
-            contents["unf_elapsed_time"])
-        ax_co_t.scatter(avg_co, avg_t)
+        subcontents = contents["no_deviation"]
+        q = [x["q"] for x in subcontents]
+        v = [x["v"] for x in subcontents]
+        t = [x["elapsed_time"] for x in subcontents]
+        avg_q = sum(q) / len(q)
+        avg_v = sum(v) / len(v)
+        avg_t = sum(t) / len(t)
+        ax_v_t.scatter(avg_v, avg_t)
         if b is None and d is None:
             ax_q.scatter(params.breadth, params.depth, avg_q)
             ax_v.scatter(params.breadth, params.depth, avg_v)
@@ -263,6 +372,7 @@ def preliminary(filepath):
 
 if __name__ == "__main__":
     # plot_basic()
-    # compare_co_t_plots()
-    preliminary("preliminary_sepsis_0_noise.json")
-    preliminary("preliminary_sepsis_05_noise.json")
+    compare_v_t_plots()
+    # preliminary("preliminary_sepsis_0_noise.json")
+    # preliminary("preliminary_sepsis_05_noise.json")
+    # v_transitions_plots()
