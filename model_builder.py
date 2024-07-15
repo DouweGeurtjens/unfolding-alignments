@@ -576,45 +576,53 @@ def main():
                     f"{EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR}/b{breadth}_d{depth}_n{nest}_bn{nesting_block.breadth}_dn{nesting_block.depth}"
                 )
 
-
-if __name__ == "__main__":
-    total_length = 20
-    loop_counter = 5
-    for loop_length in range(4, total_length):
-        tail_length = total_length - loop_length - 1
-        tail = SequenceBlock(1, tail_length, [])
-        loop = LoopBlock(1, loop_length, [])
-        start = SequenceBlock(2, 1, [loop, tail])
+    # Loops
+    for depth in range(1, 16):
+        l = LoopBlock(1, depth, [])
         activity_generator = ActivityGenerator()
-        m = Model(start)
+        m = Model(l)
         pt = m.build(activity_generator)
-        pm4py.write_ptml(
-            pt, f"{LOOP_MODEL_DIR}/b1_d{total_length}_l{loop_length}")
+        pm4py.write_ptml(pt, f"{LOOP_MODEL_DIR}/b1_d{depth}")
 
-        # Flatten PT
-        q = []
-        q.extend(pt.children)
-        loop_part = None
-        while loop_part is None:
-            v = q.pop(-1)
-            if v.operator and v.operator == pm4py.objects.process_tree.obj.Operator.LOOP:
-                loop_part = v
-            else:
-                q.extend(v.children)
-        loop_part.operator = pm4py.objects.process_tree.obj.Operator.SEQUENCE
-        c = copy(loop_part.children[0].children)
+        # Flatten PT to make logs
+        pt.operator = pm4py.objects.process_tree.obj.Operator.SEQUENCE
+        c = copy(pt.children[0].children)
 
         full_log = pm4py.objects.log.obj.EventLog()
-        for i in range(loop_counter):
-            if i > 0:
-                loop_part.children[0].children.extend(c)
-            view_petri_net(*convert_to_petri_net(pt))
+        for i in range(5):
+            pt.children[0].children.extend(c)
             log = generate_log(pt, 10)
             for t in log:
                 t.attributes[pm4py.util.xes_constants.DEFAULT_NAME_KEY] = str(
                     int(t.attributes[
-                        pm4py.util.xes_constants.DEFAULT_NAME_KEY]) + 10 * i)
+                        pm4py.util.xes_constants.DEFAULT_NAME_KEY]) +
+                    10 * depth)
                 full_log.append(t)
-        pm4py.write_xes(full_log,
-                        f"{LOOP_MODEL_DIR}/b1_d{total_length}_l{loop_length}")
-    # main()
+        pm4py.write_xes(full_log, f"{LOOP_MODEL_DIR}/b1_d{depth}")
+
+    # Loops
+    for depth in range(1, 16):
+        l = LoopBlock(1, depth, [])
+        activity_generator = ActivityGenerator()
+        m = Model(l)
+        pt = m.build(activity_generator)
+        pm4py.write_ptml(pt, f"{LOOP_MODEL_DIR}/b1_d{depth}")
+
+        # Flatten PT to make logs
+        pt.operator = pm4py.objects.process_tree.obj.Operator.SEQUENCE
+        c = copy(pt.children[0].children)
+
+        full_log = pm4py.objects.log.obj.EventLog()
+        for i in range(5):
+            pt.children[0].children.extend(c)
+            log = generate_log(pt, 10)
+            for t in log:
+                t.attributes[pm4py.util.xes_constants.DEFAULT_NAME_KEY] = str(
+                    int(t.attributes[
+                        pm4py.util.xes_constants.DEFAULT_NAME_KEY]) + (10 * i))
+                full_log.append(t)
+        pm4py.write_xes(full_log, f"{LOOP_MODEL_DIR}/b1_d{depth}")
+
+
+if __name__ == "__main__":
+    main()

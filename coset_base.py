@@ -269,8 +269,7 @@ class BranchingProcess:
             if isinstance(node, Event):
                 configuration_cost += self.underlying_net.cost_function[
                     self.underlying_net.get_net_node_by_id(
-                        node.net_transition_id).properties[
-                            NetProperties.MOVE_TYPE.name]]
+                        node.net_transition_id)]
         return configuration_cost
 
     # Just some pseudocode
@@ -298,8 +297,7 @@ class BranchingProcess:
 
         # Get the cost of this transition
         pe_cost = self.underlying_net.cost_function[
-            self.underlying_net.get_net_node_by_id(
-                pe.transition_id).properties[NetProperties.MOVE_TYPE.name]]
+            self.underlying_net.get_net_node_by_id(pe.transition_id)]
 
         configuration_marking = self.fire_configuration(pe.local_configuration)
 
@@ -318,6 +316,7 @@ class BranchingProcess:
 
         # Sum the cost of the configuration and the cost of this transition, since this transition is not yet in the configuration
         g = configuration_cost + pe_cost
+        # Set to zero to get results without heuristic
         h = pm4py.solve_marking_equation(self.underlying_net, im,
                                          self.underlying_net.fm,
                                          self.underlying_net.cost_function)
