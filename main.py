@@ -112,7 +112,7 @@ def run_offline(model_net, model_im, model_fm, trace):
 
     bp = BranchingProcessStandard(sync_net_extended)
 
-    bp.initialize_from_initial_marking()
+    bp.initialise_from_initial_marking()
 
     signal.signal(signal.SIGALRM, timeout_handler)
     signal.alarm(100)
@@ -277,7 +277,7 @@ def run_stream_no_deviations(data_filepath, model_filepath):
                                                 trace_net_fm)
         # Start balling
         bp = BranchingProcessStream(extended_net, stream)
-        bp.initialize_from_initial_marking(cost_mapping)
+        bp.initialise_from_initial_marking(cost_mapping)
         start_time = time.time()
         final_alignment = bp.alignment_streaming(model_net, model_im, model_fm,
                                                  cost_mapping)
@@ -591,6 +591,48 @@ def bpic19():
         wf.write(rstr)
 
 
+def itl_inductive():
+    datasets = ["prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6"]
+    for dataset in datasets:
+        xes_df = pm4py.read_xes(f"data/inthelarge/{dataset}.xes")
+        model_net, model_im, model_fm = discover_petri_net_inductive(
+            xes_df, noise_threshold=0.2)
+        # view_petri_net(model_net, model_im, model_fm)
+        xes_el = convert_to_event_log(format_dataframe(xes_df))
+        results = []
+        for trace in tqdm(xes_el):
+            trace_result = {}
+
+            unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+                model_net, model_im, model_fm, trace)
+            trace_result["unf_elapsed_time"] = unf_elapsed_time
+            trace_result["unf_q"] = unf_q
+            trace_result["unf_v"] = unf_v
+            trace_result["unf_cost"] = unf_cost
+
+            astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+                model_net, model_im, model_fm, trace)
+            trace_result["astar_elapsed_time"] = astar_elapsed_time
+            trace_result["astar_q"] = astar_q
+            trace_result["astar_v"] = astar_v
+            trace_result["astar_cost"] = astar_cost
+            trace_result["astar_fitness"] = astar_fitness
+
+            # dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            #     model_net, model_im, model_fm, trace)
+            # trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+            # trace_result["dijkstra_q"] = dijkstra_q
+            # trace_result["dijkstra_v"] = dijkstra_v
+            # trace_result["dijkstra_cost"] = dijkstra_cost
+            # trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+            trace_result["trace_length"] = len(trace)
+            results.append(trace_result)
+        with open(f"results/inthelarge_mined/{dataset}.json", "w") as wf:
+            rstr = json.dumps(results, indent=4)
+            wf.write(rstr)
+
+
 def main(profile_cpu=False, profile_memory=False):
     dir_pairs = [(CONCURRENT_MODEL_DIR, CONCURRENT_RESULT_DIR),
                  (CONCURRENT_CONCURRENT_NESTED_MODEL_DIR,
@@ -611,4 +653,5 @@ if __name__ == "__main__":
     # itl()
     # bpic17()
     # bpic19()
-    pass
+    itl_inductive()
+    # pass

@@ -101,7 +101,7 @@ if __name__ == "__main__":
             continue
         print(len(sync_net.transitions))
         bp = BranchingProcessStandard(extended_net)
-        bp.initialize_from_initial_marking()
+        bp.initialise_from_initial_marking()
         with cProfile.Profile() as pr:
             alignment, _ = bp.astar()
             conf = bp.get_full_configuration_from_marking(alignment)

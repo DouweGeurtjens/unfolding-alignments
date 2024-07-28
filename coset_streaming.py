@@ -23,29 +23,14 @@ PlaceID: TypeAlias = int
 TransitionID: TypeAlias = int
 
 
-class Stream(list):
-    # time_distribution in nanoseconds
-    def __init__(self, trace: pm4py.objects.log.obj.Trace,
-                 time_distribution: tuple[int, int]) -> None:
-        super().__init__()
-        self.trace = trace
-        r = Random()
-        for i in range(0, len(trace)):
-            work_time = r.randrange(time_distribution[0], time_distribution[1])
-            subtrace = trace.__copy__()
-            subtrace._list = subtrace._list[:i + 1]
-            self.append(("trace", subtrace))
-            self.append(("work", work_time))
-
-
 class BranchingProcessStream(BranchingProcess):
 
-    def __init__(self, net: ExtendedSyncNetStreaming, stream: Stream) -> None:
+    def __init__(self, net: ExtendedSyncNetStreaming, trace) -> None:
         super().__init__(net)
         # When we find a prefix alignment we don't stop, we instead add it to this dict
         self.iteration = 0
         self.prefix_alignments = {}
-        self.stream = stream
+        self.trace = trace
 
         # For evaluation
         self.unf_q_per_iteration = {}
@@ -68,38 +53,6 @@ class BranchingProcessStream(BranchingProcess):
         # Update the seen extensions
         # TODO check if this makes any sense
         # self.extensions_seen.update((new_possible_extensions))
-
-    def compute_pe(
-        self, transition_ids_to_check
-    ) -> set[tuple[TransitionID, frozenset[Condition]]]:
-        # For each transition in the net, find a co-set which is a superset
-        # Those transitions are possible extensions
-        new_possible_extensions = set()
-
-        for transition_id in transition_ids_to_check:
-            transition = self.underlying_net.get_net_node_by_id(transition_id)
-            preset_ids = get_preset_ids(transition)
-            # Get conditions with place_id in preset_ids
-            conditions = []
-
-            for place_id in preset_ids:
-                conditions.append(self.conditions[place_id])
-
-            # Try all combinations of conditions for co-relation
-            combs = product(*conditions)
-            for comb in combs:
-                comb_set = frozenset(comb)
-                pe = PossibleExtension(
-                    transition.properties[NetProperties.ID.name], comb_set,
-                    None)
-                if pe not in self.extensions_seen and pe not in self.possible_extensions.in_pq:
-                    if self.is_co_related(comb_set):
-                        local_configuration = self.get_full_configuration_from_marking(
-                            comb_set)
-                        pe.local_configuration = local_configuration
-                        new_possible_extensions.add(pe)
-
-        return new_possible_extensions
 
     def check_goal_state(self, added_conditions, check_final_marking):
         #First check if we found a prefix
@@ -144,23 +97,8 @@ class BranchingProcessStream(BranchingProcess):
                 self.unf_v_per_iteration[
                     self.iteration] = self.possible_extensions._visited
 
-    def astar(self, operation, work_time):
-        check_final_marking = False
-        # Set up additional stopping conditions
-        if operation == "end":
-            check_final_marking = True
-        if operation == "work":
-            # Set timer
-            start = time.time_ns()
-            end = start
-            duration = end - start
-
+    def astar(self, check_final_marking=False):
         while len(self.possible_extensions.pq) > 0:
-            # Check extra stopping conditions
-            # if operation == "work":
-            #     if duration >= work_time:
-            #         return None
-
             astar_item: AStarItem = self.possible_extensions.pop()
             self.extensions_seen.add(astar_item.pe)
             # This event is a cut-off event
@@ -207,46 +145,47 @@ class BranchingProcessStream(BranchingProcess):
             if self.is_cut_off(added_event):
                 self.cut_off_events.add(added_event)
 
-            # if operation == "work":
-            #     end = time.time_ns()
-            #     duration = end - start
+    def alignment_streaming(self, model_net, model_im, model_fm, trace):
+        # The trace simply simulates a stream by picking one event at a time
+        # We initliased the BP with an event on the trace so we must initialise and look for a prefix alignment first
+        self.initialise_from_initial_marking()
+        alignment = self.astar()
+        while len(trace) != 0:
+            event = trace.__list.pop(0)
+            # Add this event onto our bp
+            self.trace.append(event)
 
-    def alignment_streaming(self, model_net, model_im, model_fm):
-        while len(self.stream) != 0:
-            operation, operation_value = self.stream.pop(0)
-            if operation == "trace":
-                trace_net, trace_net_im, trace_net_fm = construct_trace_net(
-                    operation_value, "concept:name", "concept:name")
+            trace_net, trace_net_im, trace_net_fm = construct_trace_net(
+                self.trace, "concept:name", "concept:name")
 
-                sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
-                    model_net, model_im, model_fm, trace_net, trace_net_im,
-                    trace_net_fm)
-                # view_petri_net(sync_net)
-                update_new_synchronous_product_streaming(
-                    self.underlying_net, sync_net)
-                extended_net = ExtendedSyncNetStreaming(
-                    sync_net, sync_im, sync_fm, trace_net_fm, cost_function)
+            sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
+                model_net, model_im, model_fm, trace_net, trace_net_im,
+                trace_net_fm)
+            # view_petri_net(sync_net)
+            update_new_synchronous_product_streaming(self.underlying_net,
+                                                     sync_net)
+            extended_net = ExtendedSyncNetStreaming(sync_net, sync_im, sync_fm,
+                                                    trace_net_fm,
+                                                    cost_function)
 
-                old_transition_ids = set(
-                    x.properties[NetProperties.ID.name]
-                    for x in self.underlying_net.transitions)
-                new_transition_ids = set(x.properties[NetProperties.ID.name]
-                                         for x in extended_net.transitions)
-                transition_ids_to_check = new_transition_ids.difference(
-                    old_transition_ids)
+            old_transition_ids = set(x.properties[NetProperties.ID.name]
+                                     for x in self.underlying_net.transitions)
+            new_transition_ids = set(x.properties[NetProperties.ID.name]
+                                     for x in extended_net.transitions)
+            transition_ids_to_check = new_transition_ids.difference(
+                old_transition_ids)
 
-                self.underlying_net = extended_net
-                self.re_initialize(transition_ids_to_check)
-                self.iteration += 1
-            if operation == "work":
-                alignment = self.astar(operation, operation_value)
-                # # If we return something we're done
-                # if alignment:
-                #     return alignment
+            self.underlying_net = extended_net
+            self.re_initialize(transition_ids_to_check)
+            self.iteration += 1
+            # Compute prefix alignment
+            alignment = self.astar()
+            # # If we return something we're done
+            # if alignment:
+            #     return alignment
 
-        # Stream ran out, continue processing
-        alignment = self.astar("end", float("inf"))
-        # If we return something we're done
+        # Stream ran out, continue processing to get the full alignment
+        alignment = self.astar(True)
         print("done")
         return alignment
 
@@ -265,22 +204,17 @@ if __name__ == "__main__":
     # alignment_net = bp.convert_nodes_to_net(config.nodes)
     # view_petri_net(alignment_net)
     for trace in xes_el:
-        # initialize stream with worktime between 0.5 and 1 seconds
-        stream = Stream(trace, (500000000, 1000000000))
-        # Get the first slice of the trace after "connecting" to the stream
-        operation, operation_value = stream.pop(0)
-        # Initialize other stuffs
+        event = trace.__list.pop(0)
+        stream = pm4py.objects.log.obj.Trace(trace)
+        # Add this event onto our bp
         trace_net, trace_net_im, trace_net_fm = construct_trace_net(
-            operation_value, "concept:name", "concept:name")
+            stream, "concept:name", "concept:name")
         sync_net, sync_im, sync_fm = construct_synchronous_product(
             model_net, model_im, model_fm, trace_net, trace_net_im,
             trace_net_fm)
         extended_net = ExtendedSyncNetStreaming(sync_net, sync_im, sync_fm,
                                                 trace_net_fm)
-        # Start balling
         bp = BranchingProcessStream(extended_net, stream)
-        bp.initialize_from_initial_marking()
-        view_petri_net(sync_net)
         final_alignment = bp.alignment_streaming(model_net, model_im, model_fm)
         conf = bp.get_full_configuration_from_marking(final_alignment)
         net = bp.convert_nodes_to_net(conf.nodes)
@@ -294,31 +228,3 @@ if __name__ == "__main__":
         print(
             f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
         )
-
-        stream = Stream(trace, (500000000, 1000000000))
-        qsum = 0
-        vsum = 0
-        for operation, operation_value in stream:
-            if operation == "work":
-                continue
-            trace_net, trace_net_im, trace_net_fm = construct_trace_net(
-                operation_value, "concept:name", "concept:name")
-            sync_net, sync_im, sync_fm = construct_synchronous_product(
-                model_net, model_im, model_fm, trace_net, trace_net_im,
-                trace_net_fm)
-            extended_net = ExtendedSyncNetStreaming(sync_net, sync_im, sync_fm,
-                                                    trace_net_fm)
-            # Start balling
-            bp = BranchingProcessStream(extended_net, None)
-            bp.initialize_from_initial_marking()
-            final_alignment = bp.astar("work", None)
-            # conf = bp.get_full_configuration_from_marking(final_alignment)
-            # net = bp.convert_nodes_to_net(conf.nodes)
-            # view_petri_net(net)
-            # print(
-            #     f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
-            # )
-            qsum += bp.possible_extensions._queued
-            vsum += bp.possible_extensions._visited
-        print(qsum)
-        print(vsum)

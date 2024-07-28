@@ -201,7 +201,7 @@ class BranchingProcess:
 
         return True
 
-    def initialize_from_initial_marking(self):
+    def initialise_from_initial_marking(self):
         for place in self.underlying_net.places:
             self.conditions[place.properties[NetProperties.ID.name]] = set()
 
