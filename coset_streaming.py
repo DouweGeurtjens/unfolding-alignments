@@ -25,12 +25,13 @@ TransitionID: TypeAlias = int
 
 class BranchingProcessStream(BranchingProcess):
 
-    def __init__(self, net: ExtendedSyncNetStreaming, trace) -> None:
+    def __init__(self, net: ExtendedSyncNetStreaming, starting_trace) -> None:
         super().__init__(net)
         # When we find a prefix alignment we don't stop, we instead add it to this dict
         self.iteration = 0
         self.prefix_alignments = {}
-        self.trace = trace
+        # This should be a trace containing only the first event on the stream
+        self.trace = starting_trace
 
         # For evaluation
         self.unf_q_per_iteration = {}
@@ -61,7 +62,7 @@ class BranchingProcessStream(BranchingProcess):
                 if self.underlying_net.get_net_node_by_id(
                         added_condition.net_place_id
                 ) in self.underlying_net.trace_fm:
-                    print("Found prefix alignment")
+                    # print("Found prefix alignment")
                     return True, "prefix"
 
         # TODO make a way to check if a trace is complete
@@ -71,7 +72,7 @@ class BranchingProcessStream(BranchingProcess):
                 if self.underlying_net.get_net_node_by_id(
                         list(added_conditions)
                     [0].net_place_id) in self.underlying_net.fm:
-                    print(f"Found full alignment")
+                    # print(f"Found full alignment")
                     return True, "full"
 
         return False, None
@@ -120,7 +121,7 @@ class BranchingProcessStream(BranchingProcess):
                     self.store_prefix_alignment(added_conditions, astar_item.g)
                     return None
                 if prefix_or_full == "full":
-                    return added_conditions
+                    return added_conditions, astar_item.g
 
             transition_ids_to_check = set()
             for condition in added_conditions:
@@ -145,13 +146,13 @@ class BranchingProcessStream(BranchingProcess):
             if self.is_cut_off(added_event):
                 self.cut_off_events.add(added_event)
 
-    def alignment_streaming(self, model_net, model_im, model_fm, trace):
+    def alignment_streaming(self, model_net, model_im, model_fm, stream):
         # The trace simply simulates a stream by picking one event at a time
         # We initliased the BP with an event on the trace so we must initialise and look for a prefix alignment first
         self.initialise_from_initial_marking()
         alignment = self.astar()
-        while len(trace) != 0:
-            event = trace.__list.pop(0)
+        while len(stream) != 0:
+            event = stream._list.pop(0)
             # Add this event onto our bp
             self.trace.append(event)
 
@@ -186,45 +187,46 @@ class BranchingProcessStream(BranchingProcess):
 
         # Stream ran out, continue processing to get the full alignment
         alignment = self.astar(True)
-        print("done")
+        # print("done")
         return alignment
 
 
 if __name__ == "__main__":
-    # model_net, model_im, model_fm = import_from_tpn("./inthelarge/prAm6.tpn")
-    # xes_df = pm4py.read_xes("./inthelarge/prAm6.xes")
-    # model_net, model_im, model_fm = pm4py.read_pnml(
-    #     "./banktransfer/model/original/banktransfer_opennet.pnml", True)
-    # xes_df = pm4py.read_xes("./banktransfer/logs/2000-all-nonoise.xes")
-    xes_df = pm4py.read_xes("data/Sepsis Cases - Event Log.xes")
-    model_net, model_im, model_fm = discover_petri_net_inductive(
-        xes_df, noise_threshold=0)
-    xes_el = convert_to_event_log(format_dataframe(xes_df))
-    # config = bp.get_full_configuration_from_marking(alignment)
-    # alignment_net = bp.convert_nodes_to_net(config.nodes)
-    # view_petri_net(alignment_net)
-    for trace in xes_el:
-        event = trace.__list.pop(0)
-        stream = pm4py.objects.log.obj.Trace(trace)
-        # Add this event onto our bp
-        trace_net, trace_net_im, trace_net_fm = construct_trace_net(
-            stream, "concept:name", "concept:name")
-        sync_net, sync_im, sync_fm = construct_synchronous_product(
-            model_net, model_im, model_fm, trace_net, trace_net_im,
-            trace_net_fm)
-        extended_net = ExtendedSyncNetStreaming(sync_net, sync_im, sync_fm,
-                                                trace_net_fm)
-        bp = BranchingProcessStream(extended_net, stream)
-        final_alignment = bp.alignment_streaming(model_net, model_im, model_fm)
-        conf = bp.get_full_configuration_from_marking(final_alignment)
-        net = bp.convert_nodes_to_net(conf.nodes)
-        view_petri_net(net)
-        for k, v in bp.prefix_alignments.items():
-            print(k)
-            alignment = v[0]
-            conf = bp.get_full_configuration_from_marking(alignment)
-            net = bp.convert_nodes_to_net(conf.nodes)
-            # view_petri_net(net)
-        print(
-            f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
-        )
+    pass
+    # # model_net, model_im, model_fm = import_from_tpn("./inthelarge/prAm6.tpn")
+    # # xes_df = pm4py.read_xes("./inthelarge/prAm6.xes")
+    # # model_net, model_im, model_fm = pm4py.read_pnml(
+    # #     "./banktransfer/model/original/banktransfer_opennet.pnml", True)
+    # # xes_df = pm4py.read_xes("./banktransfer/logs/2000-all-nonoise.xes")
+    # xes_df = pm4py.read_xes("data/Sepsis Cases - Event Log.xes")
+    # model_net, model_im, model_fm = discover_petri_net_inductive(
+    #     xes_df, noise_threshold=0)
+    # xes_el = convert_to_event_log(format_dataframe(xes_df))
+    # # config = bp.get_full_configuration_from_marking(alignment)
+    # # alignment_net = bp.convert_nodes_to_net(config.nodes)
+    # # view_petri_net(alignment_net)
+    # for trace in xes_el:
+    #     event = trace.__list.pop(0)
+    #     stream = pm4py.objects.log.obj.Trace(trace)
+    #     # Add this event onto our bp
+    #     trace_net, trace_net_im, trace_net_fm = construct_trace_net(
+    #         stream, "concept:name", "concept:name")
+    #     sync_net, sync_im, sync_fm = construct_synchronous_product(
+    #         model_net, model_im, model_fm, trace_net, trace_net_im,
+    #         trace_net_fm)
+    #     extended_net = ExtendedSyncNetStreaming(sync_net, sync_im, sync_fm,
+    #                                             trace_net_fm)
+    #     bp = BranchingProcessStream(extended_net, stream)
+    #     final_alignment = bp.alignment_streaming(model_net, model_im, model_fm)
+    #     conf = bp.get_full_configuration_from_marking(final_alignment)
+    #     net = bp.convert_nodes_to_net(conf.nodes)
+    #     view_petri_net(net)
+    #     for k, v in bp.prefix_alignments.items():
+    #         print(k)
+    #         alignment = v[0]
+    #         conf = bp.get_full_configuration_from_marking(alignment)
+    #         net = bp.convert_nodes_to_net(conf.nodes)
+    #         # view_petri_net(net)
+    #     print(
+    #         f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
+    #     )

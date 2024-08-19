@@ -1,4 +1,5 @@
 from copy import deepcopy, copy
+import sys
 import pandas as pd
 from pm4py import PetriNet, Marking, discover_petri_net_inductive, view_petri_net, format_dataframe, convert_to_event_log, conformance_diagnostics_alignments
 # Use TypeAlias because the type notation in introduced in 3.12 isn't support by yapf yet
@@ -321,7 +322,8 @@ class BranchingProcess:
                                          self.underlying_net.fm,
                                          self.underlying_net.cost_function)
         if h == None:
-            print("FUg")
+            # No heuristic possible?
+            print("Bad")
         f = g + h
 
         return AStarItem(f, g, h, pe)

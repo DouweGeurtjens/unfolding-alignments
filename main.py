@@ -99,6 +99,37 @@ def run_astar_with_timer(model_net, model_im, model_fm, trace):
             "cost"], astar_alignment["fitness"]
 
 
+def run_streaming(model_net, model_im, model_fm, trace):
+    starting_trace = trace.__copy__()
+    starting_trace._list = starting_trace._list[:1]
+    stream = trace.__copy__()
+    stream._list = stream._list[1:]
+
+    # Add this event onto our bp
+    start_time = time.time()
+    trace_net, trace_net_im, trace_net_fm = construct_trace_net(
+        starting_trace, "concept:name", "concept:name")
+    sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
+        model_net, model_im, model_fm, trace_net, trace_net_im, trace_net_fm)
+
+    extended_net = ExtendedSyncNetStreaming(sync_net, sync_im, sync_fm,
+                                            trace_net_fm, cost_function)
+
+    bp = BranchingProcessStream(extended_net, starting_trace)
+
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(100)
+    try:
+        final_alignment, cost = bp.alignment_streaming(model_net, model_im,
+                                                       model_fm, stream)
+    except TimeoutException:
+        return -1, bp.possible_extensions._queued, bp.possible_extensions._visited, -1, bp.unf_q_per_iteration, bp.unf_v_per_iteration
+
+    signal.alarm(0)
+    elapsed_time = time.time() - start_time
+    return elapsed_time, bp.possible_extensions._queued, bp.possible_extensions._visited, cost, bp.unf_q_per_iteration, bp.unf_v_per_iteration
+
+
 def run_offline(model_net, model_im, model_fm, trace):
     start_time = time.time()
     trace_net, trace_net_im, trace_net_fm = construct_trace_net(
@@ -239,70 +270,6 @@ def run_offline_no_deviations(data_filepath, model_net, model_im, model_fm):
     return results
 
 
-def run_stream_no_deviations(data_filepath, model_filepath):
-    total_traces = 0
-    unf_q = []
-    unf_v = []
-    unf_q_per_iteration = []
-    unf_v_per_iteration = []
-    unf_elapsed_time = []
-    cost_mapping = {
-        MoveTypes.LOG.name: 10000,
-        MoveTypes.MODEL.name: 10000,
-        MoveTypes.SYNC.name: 0,
-        MoveTypes.MODEL_SILENT.name: 1,
-        MoveTypes.DUMMY.name: 0
-    }
-    xes_df = pm4py.read_xes(data_filepath)
-    pt = pm4py.read_ptml(model_filepath)
-    model_net, model_im, model_fm = pm4py.convert_to_petri_net(pt)
-
-    xes_el = convert_to_event_log(format_dataframe(xes_df))
-    for trace in tqdm(xes_el):
-        total_traces += 1
-
-        stream = Stream(trace, (500000000, 1000000000))
-
-        # Get the first slice of the trace after "connecting" to the stream
-        operation, operation_value = stream.pop(0)
-
-        # Initialize other stuffs
-        trace_net, trace_net_im, trace_net_fm = construct_trace_net(
-            operation_value, "concept:name", "concept:name")
-        sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
-            model_net, model_im, model_fm, trace_net, trace_net_im,
-            trace_net_fm)
-
-        extended_net = ExtendedSyncNetStreaming(sync_net, sync_im, sync_fm,
-                                                trace_net_fm)
-        # Start balling
-        bp = BranchingProcessStream(extended_net, stream)
-        bp.initialise_from_initial_marking(cost_mapping)
-        start_time = time.time()
-        final_alignment = bp.alignment_streaming(model_net, model_im, model_fm,
-                                                 cost_mapping)
-        end_time = time.time()
-        unf_elapsed_time.append(end_time - start_time)
-
-        # print(
-        #     f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
-        # )
-        unf_q.append(bp.possible_extensions._queued)
-        unf_v.append(bp.possible_extensions._visited)
-        unf_q_per_iteration.append(bp.unf_q_per_iteration)
-        unf_v_per_iteration.append(bp.unf_v_per_iteration)
-
-    results = {}
-    results["total_traces"] = total_traces
-    results["unf_q"] = unf_q
-    results["unf_v"] = unf_v
-    results["unf_q_per_iteration"] = unf_q_per_iteration
-    results["unf_v_per_iteration"] = unf_v_per_iteration
-    results["unf_elapsed_time"] = unf_elapsed_time
-
-    return results
-
-
 def preliminary():
     xes_df = pm4py.read_xes("data/Sepsis Cases - Event Log.xes")
     model_net, model_im, model_fm = discover_petri_net_inductive(
@@ -427,7 +394,7 @@ def run_artificial_model_offline(model_dir,
 
 
 def itl():
-    datasets = ["prGm6"]
+    datasets = ["prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6"]
     for dataset in datasets:
         model_net, model_im, model_fm = import_from_tpn(
             f"data/inthelarge/{dataset}.tpn")
@@ -507,6 +474,46 @@ def sepsis():
         wf.write(rstr)
 
 
+def sepsis_split():
+    xes_df = pm4py.read_xes("data/sepsis/Sepsis Cases - Event Log.xes")
+    bpmn = pm4py.read_bpmn("data/sepsis/sepsis_split.bpmn")
+    model_net, model_im, model_fm = pm4py.convert_to_petri_net(bpmn)
+    view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    for trace in tqdm(xes_el):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/sepsis/sepsis_split.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
 def bpic17():
     xes_df = pm4py.read_xes("data/bpic17/BPI Challenge 2017.xes")
     model_net, model_im, model_fm = discover_petri_net_inductive(
@@ -545,6 +552,48 @@ def bpic17():
         trace_result["trace_length"] = len(trace)
         results.append(trace_result)
     with open(f"results/bpic17/bpic17_02.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic17_split():
+    xes_df = pm4py.read_xes("data/bpic17/BPI Challenge 2017.xes")
+    bpmn = pm4py.read_bpmn("data/bpic17/bpic17_split.bpmn")
+    model_net, model_im, model_fm = pm4py.convert_to_petri_net(bpmn)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/bpic17/bpic17_split.json", "w") as wf:
         rstr = json.dumps(results, indent=4)
         wf.write(rstr)
 
@@ -591,6 +640,391 @@ def bpic19():
         wf.write(rstr)
 
 
+def traffic():
+    xes_df = pm4py.read_xes(
+        "data/traffic/Road_Traffic_Fine_Management_Process.xes")
+    model_net, model_im, model_fm = discover_petri_net_inductive(
+        xes_df, noise_threshold=0.2)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/traffic/traffic_02.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def traffic_split():
+    xes_df = pm4py.read_xes(
+        "data/traffic/Road_Traffic_Fine_Management_Process.xes")
+    bpmn = pm4py.read_bpmn("data/traffic/traffic_split.bpmn")
+    model_net, model_im, model_fm = pm4py.convert_to_petri_net(bpmn)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/traffic/traffic_split.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def hospital_billing():
+    xes_df = pm4py.read_xes(
+        "data/hospital_billing/Hospital Billing - Event Log.xes")
+    model_net, model_im, model_fm = discover_petri_net_inductive(
+        xes_df, noise_threshold=0.2)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/hospital_billing/hospital_billing_02.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def hospital_billing_split():
+    xes_df = pm4py.read_xes(
+        "data/hospital_billing/Hospital Billing - Event Log.xes")
+    bpmn = pm4py.read_bpmn("data/hospital_billing/hospital_billing_split.bpmn")
+    model_net, model_im, model_fm = pm4py.convert_to_petri_net(bpmn)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/hospital_billing/hospital_billing_split.json",
+              "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic13():
+    xes_df = pm4py.read_xes("data/bpic13/BPI_Challenge_2013_incidents.xes")
+    model_net, model_im, model_fm = discover_petri_net_inductive(
+        xes_df, noise_threshold=0.2)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/bpic13/bpic13_02.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic13_split():
+    xes_df = pm4py.read_xes("data/bpic13/BPI_Challenge_2013_incidents.xes")
+    bpmn = pm4py.read_bpmn("data/bpic13/bpic13_split.bpmn")
+    model_net, model_im, model_fm = pm4py.convert_to_petri_net(bpmn)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/bpic13/bpic13_split.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic12():
+    xes_df = pm4py.read_xes("data/bpic12/BPI_Challenge_2012.xes")
+    model_net, model_im, model_fm = discover_petri_net_inductive(
+        xes_df, noise_threshold=0.2)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/bpic12/bpic12_02.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic12_split():
+    xes_df = pm4py.read_xes("data/bpic12/BPI_Challenge_2012.xes")
+    bpmn = pm4py.read_bpmn("data/bpic12/bpic12_split.bpmn")
+    model_net, model_im, model_fm = pm4py.convert_to_petri_net(bpmn)
+    # view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+
+        astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["astar_elapsed_time"] = astar_elapsed_time
+        trace_result["astar_q"] = astar_q
+        trace_result["astar_v"] = astar_v
+        trace_result["astar_cost"] = astar_cost
+        trace_result["astar_fitness"] = astar_fitness
+
+        dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+            model_net, model_im, model_fm, trace)
+        trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+        trace_result["dijkstra_q"] = dijkstra_q
+        trace_result["dijkstra_v"] = dijkstra_v
+        trace_result["dijkstra_cost"] = dijkstra_cost
+        trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+        trace_result["trace_length"] = len(trace)
+        results.append(trace_result)
+    with open(f"results/bpic12/bpic12_split.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic15():
+    datasets = ["BPIC15_1", "BPIC15_2", "BPIC15_3", "BPIC15_4", "BPIC15_5"]
+    for dataset in datasets:
+        xes_df = pm4py.read_xes(f"data/bpic15/{dataset}.xes")
+        model_net, model_im, model_fm = discover_petri_net_inductive(
+            xes_df, noise_threshold=0.2)
+        # view_petri_net(model_net, model_im, model_fm)
+        xes_el = convert_to_event_log(format_dataframe(xes_df))
+        results = []
+        random.seed(1)
+        rnd = random.sample(xes_el, 1000)
+        for trace in tqdm(rnd):
+            trace_result = {}
+
+            unf_elapsed_time, unf_q, unf_v, unf_cost = run_offline(
+                model_net, model_im, model_fm, trace)
+            trace_result["unf_elapsed_time"] = unf_elapsed_time
+            trace_result["unf_q"] = unf_q
+            trace_result["unf_v"] = unf_v
+            trace_result["unf_cost"] = unf_cost
+
+            astar_elapsed_time, astar_q, astar_v, astar_cost, astar_fitness = run_astar_with_timer(
+                model_net, model_im, model_fm, trace)
+            trace_result["astar_elapsed_time"] = astar_elapsed_time
+            trace_result["astar_q"] = astar_q
+            trace_result["astar_v"] = astar_v
+            trace_result["astar_cost"] = astar_cost
+            trace_result["astar_fitness"] = astar_fitness
+
+            dijkstra_elapsed_time, dijkstra_q, dijkstra_v, dijkstra_cost, dijkstra_fitness = run_dijkstra_with_timer(
+                model_net, model_im, model_fm, trace)
+            trace_result["dijkstra_elapsed_time"] = dijkstra_elapsed_time
+            trace_result["dijkstra_q"] = dijkstra_q
+            trace_result["dijkstra_v"] = dijkstra_v
+            trace_result["dijkstra_cost"] = dijkstra_cost
+            trace_result["dijkstra_fitness"] = dijkstra_fitness
+
+            trace_result["trace_length"] = len(trace)
+            results.append(trace_result)
+        with open(f"results/bpic15/{dataset}.json", "w") as wf:
+            rstr = json.dumps(results, indent=4)
+            wf.write(rstr)
+
+
 def itl_inductive():
     datasets = ["prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6"]
     for dataset in datasets:
@@ -633,6 +1067,94 @@ def itl_inductive():
             wf.write(rstr)
 
 
+def sepsis_streaming():
+    xes_df = pm4py.read_xes("data/sepsis/Sepsis Cases - Event Log.xes")
+    model_net, model_im, model_fm = discover_petri_net_inductive(
+        xes_df, noise_threshold=0.5)
+    view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    for trace in tqdm(xes_el):
+        # Store now because trace will be modified later
+        trace_len = len(trace)
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost, unf_q_per_iteration, unf_v_per_iteration = run_streaming(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+        trace_result["unf_q_per_iteration"] = unf_q_per_iteration
+        trace_result["unf_v_per_iteration"] = unf_v_per_iteration
+
+        trace_result["trace_length"] = trace_len
+        results.append(trace_result)
+    with open(f"results/streaming/sepsis/sepsis_05.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic17_streaming():
+    xes_df = pm4py.read_xes("data/bpic17/BPI Challenge 2017.xes")
+    model_net, model_im, model_fm = discover_petri_net_inductive(
+        xes_df, noise_threshold=0.2)
+    view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        # Store now because trace will be modified later
+        trace_len = len(trace)
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost, unf_q_per_iteration, unf_v_per_iteration = run_streaming(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+        trace_result["unf_q_per_iteration"] = unf_q_per_iteration
+        trace_result["unf_v_per_iteration"] = unf_v_per_iteration
+
+        trace_result["trace_length"] = trace_len
+        results.append(trace_result)
+    with open(f"results/streaming/bpic17/bpic17_02.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
+def bpic19_streaming():
+    xes_df = pm4py.read_xes("data/bpic19/BPI_Challenge_2019.xes")
+    model_net, model_im, model_fm = discover_petri_net_inductive(
+        xes_df, noise_threshold=0.2)
+    view_petri_net(model_net, model_im, model_fm)
+    xes_el = convert_to_event_log(format_dataframe(xes_df))
+    results = []
+    random.seed(1)
+    rnd = random.sample(xes_el, 1000)
+    for trace in tqdm(rnd):
+        # Store now because trace will be modified later
+        trace_len = len(trace)
+        trace_result = {}
+
+        unf_elapsed_time, unf_q, unf_v, unf_cost, unf_q_per_iteration, unf_v_per_iteration = run_streaming(
+            model_net, model_im, model_fm, trace)
+        trace_result["unf_elapsed_time"] = unf_elapsed_time
+        trace_result["unf_q"] = unf_q
+        trace_result["unf_v"] = unf_v
+        trace_result["unf_cost"] = unf_cost
+        trace_result["unf_q_per_iteration"] = unf_q_per_iteration
+        trace_result["unf_v_per_iteration"] = unf_v_per_iteration
+
+        trace_result["trace_length"] = trace_len
+        results.append(trace_result)
+    with open(f"results/streaming/bpic19/bpic19_02.json", "w") as wf:
+        rstr = json.dumps(results, indent=4)
+        wf.write(rstr)
+
+
 def main(profile_cpu=False, profile_memory=False):
     dir_pairs = [(CONCURRENT_MODEL_DIR, CONCURRENT_RESULT_DIR),
                  (CONCURRENT_CONCURRENT_NESTED_MODEL_DIR,
@@ -646,6 +1168,35 @@ def main(profile_cpu=False, profile_memory=False):
                                      profile_memory)
 
 
+def itl_streaming():
+    datasets = ["prAm6", "prBm6", "prCm6", "prDm6", "prEm6", "prFm6", "prGm6"]
+    for dataset in datasets:
+        model_net, model_im, model_fm = import_from_tpn(
+            f"data/inthelarge/{dataset}.tpn")
+        xes_df = pm4py.read_xes(f"data/inthelarge/{dataset}.xes")
+        xes_el = convert_to_event_log(format_dataframe(xes_df))
+        results = []
+        for trace in tqdm(xes_el):
+            # Store now because trace will be modified later
+            trace_len = len(trace)
+            trace_result = {}
+
+            unf_elapsed_time, unf_q, unf_v, unf_cost, unf_q_per_iteration, unf_v_per_iteration = run_streaming(
+                model_net, model_im, model_fm, trace)
+            trace_result["unf_elapsed_time"] = unf_elapsed_time
+            trace_result["unf_q"] = unf_q
+            trace_result["unf_v"] = unf_v
+            trace_result["unf_cost"] = unf_cost
+            trace_result["unf_q_per_iteration"] = unf_q_per_iteration
+            trace_result["unf_v_per_iteration"] = unf_v_per_iteration
+
+            trace_result["trace_length"] = trace_len
+            results.append(trace_result)
+        with open(f"results/streaming/inthelarge/{dataset}.json", "w") as wf:
+            rstr = json.dumps(results, indent=4)
+            wf.write(rstr)
+
+
 if __name__ == "__main__":
     # main()
     # preliminary()
@@ -653,5 +1204,22 @@ if __name__ == "__main__":
     # itl()
     # bpic17()
     # bpic19()
-    itl_inductive()
+    # itl_inductive()
+    # sepsis_streaming()
+    # bpic17_streaming()
+    # bpic19_streaming()
+    # itl_streaming()
+    # traffic()
+    # hospital()
+    # bpic12()
+    # bpic13()
+    # hospital_billing()
+    # hospital()
+    # bpic15()
+    sepsis_split()
+    traffic_split()
+    hospital_billing_split()
+    bpic12_split()
+    bpic13_split()
+    bpic17_split()
     # pass

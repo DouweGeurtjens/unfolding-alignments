@@ -1,6 +1,7 @@
 import os
 
 import sklearn.decomposition
+import sklearn.feature_selection
 import sklearn.linear_model
 import sklearn.metrics
 import sklearn.model_selection
@@ -39,7 +40,9 @@ class SMWrapper(BaseEstimator, RegressorMixin):
     def predict(self, X):
         if self.fit_intercept:
             X = sm.add_constant(X)
-        return self.results_.predict(X)
+        res = self.results_.predict(X)
+        self.residuals = self.results_.resid
+        return res
 
 
 class ModelParameters:
@@ -398,10 +401,28 @@ def plot_basic(b=None, d=None):
 
 
 def preliminary(filepath):
+    xes_df = pm4py.read_xes("data/sepsis/Sepsis Cases - Event Log.xes")
+    model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(xes_df)
+    xes_el = pm4py.convert_to_event_log(pm4py.format_dataframe(xes_df))
     with open(filepath, "r") as f:
         res = json.load(f)
 
+    sp = []
+    for t in xes_el:
+        trace_net, trace_net_im, trace_net_fm = ptn.construct_trace_net(
+            t, "concept:name", "concept:name")
+        sync_net, sync_im, sync_fm, cost_function = ptn.construct_synchronous_product(
+            model_net, model_im, model_fm, trace_net, trace_net_im,
+            trace_net_fm)
+        sp.append(len(sync_net.transitions))
+
     table_data = {}
+
+    fig_sp_v = plt.figure()
+    fig_sp_v.suptitle("unfolding")
+    ax_sp_v = fig_sp_v.add_subplot()
+    ax_sp_v.set_xlabel("synchronous product transitions")
+    ax_sp_v.set_ylabel("visisted states")
 
     fig_c_v = plt.figure()
     fig_c_v.suptitle("unfolding")
@@ -495,6 +516,7 @@ def preliminary(filepath):
     ax_v_t.scatter(unf_v, unf_elapsed_time)
     ax_c_v.scatter(unf_cost, unf_v)
     ax_c_t.scatter(unf_cost, unf_elapsed_time)
+    ax_sp_v.scatter(sp, unf_v)
 
     table_data["avg_q_difference_unf_dijkstra"] = sum([(
         (j - i) / i) * 100 for i, j in zip(unf_q, dijkstra_q)]) / len(unf_q)
@@ -805,21 +827,37 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
 
 def stage_two_figures():
     res_file_path_color_title_pairs = [
-        ("results/sepsis/sepsis_05.json", "red", "SP"),
-        ("results/bpic17/bpic17_02.json", "green", "BPIC17"),
-        ("results/bpic19/bpic19_02.json", "blue", "BPIC19"),
-        ("results/inthelarge/prAm6.json", "pink", "ITL prAm6"),
-        ("results/inthelarge/prBm6.json", "purple", "ITL prBm6"),
-        ("results/inthelarge/prCm6.json", "magenta", "ITL prCm6"),
-        ("results/inthelarge/prDm6.json", "turquoise", "ITL prDm6"),
-        ("results/inthelarge/prEm6.json", "cyan", "ITL prEm6"),
-        ("results/inthelarge/prFm6.json", "yellow", "ITL prFm6"),
-        ("results/inthelarge/prGm6.json", "orange", "ITL prGm6"),
+        ("results/sepsis/sepsis_05.json", "#2f4f4f", "SP"),
+        ("results/bpic17/bpic17_02.json", "#2e8b57", "BPIC17"),
+        ("results/bpic19/bpic19_02.json", "#8b0000", "BPIC19"),
+        ("results/inthelarge/prAm6.json", "#808000", "ITL prAm6"),
+        ("results/inthelarge/prBm6.json", "#000080", "ITL prBm6"),
+        ("results/inthelarge/prCm6.json", "#ff0000", "ITL prCm6"),
+        ("results/inthelarge/prDm6.json", "#ffa500", "ITL prDm6"),
+        ("results/inthelarge/prEm6.json", "#7cfc00", "ITL prEm6"),
+        ("results/inthelarge/prFm6.json", "#ba55d3", "ITL prFm6"),
+        ("results/inthelarge/prGm6.json", "#00ffff", "ITL prGm6"),
+        ("results/hospital_billing/hospital_billing_02.json", "#0000ff", "HB"),
+        ("results/bpic12/bpic12_02.json", "#f08080", "BPIC12"),
+        ("results/bpic13/bpic13_02.json", "#1e90ff", "BPIC13"),
+        ("results/traffic/traffic_02.json", "#ffff54", "TR"),
+        ("results/bpic13/bpic13_split.json", "#dda0dd", "BPIC13_SPLIT"),
+        ("results/sepsis/sepsis_split.json", "#ff1493", "SP_SPLIT"),
+        ("results/bpic12/bpic12_split.json", "#f5deb3", "BPIC12_SPLIT"),
+        ("results/bpic17/bpic17_split.json", "#98fb98", "BPIC17_SPLIT"),
+        ("results/hospital_billing/hospital_billing_split.json", "#87cefa",
+         "HB_SPLIT"),
+        ("results/traffic/traffic_split.json", "#000000", "TR_SPLIT"),
     ]
     v = "visited states"
+    vlog = "visited states (ln)"
+    q = "queued states"
+    qlog = "queued states (ln)"
+    fit = "fitness"
+    cost = "cost"
     c = "count"
     t = "time (s)"
-    tlog = "time (log2(s))"
+    tlog = "time (ln(s))"
     tl = "trace length"
     sp = "synchronous product transitions"
     unf = "unfolding"
@@ -827,11 +865,15 @@ def stage_two_figures():
     dijkstra = "dijkstra"
 
     fig_unf_v_t, ax_unf_v_t = plot_2d(v, t, unf)
+    fig_unf_q_t, ax_unf_q_t = plot_2d(q, t, unf)
     fig_unf_tl_v, ax_unf_tl_v = plot_2d(tl, v, unf)
     fig_unf_sp_v, ax_unf_sp_v = plot_2d(sp, v, unf)
     fig_unf_sp_t, ax_unf_sp_t = plot_2d(sp, t, unf)
-    fig_unf_v_tlog, ax_unf_v_tlog = plot_2d(v, tlog, unf)
+    fig_unf_vlog_tlog, ax_unf_vlog_tlog = plot_2d(vlog, tlog, unf)
+    fig_unf_qlog_tlog, ax_unf_qlog_tlog = plot_2d(qlog, tlog, unf)
     fig_unf_sp_tlog, ax_unf_sp_tlog = plot_2d(sp, tlog, unf)
+    fig_unf_fit_t, ax_unf_fit_t = plot_2d(fit, t, unf)
+    fig_unf_cost_t, ax_unf_cost_t = plot_2d(cost, t, unf)
 
     for res_file_path, color, title in res_file_path_color_title_pairs:
         with open(res_file_path) as rf:
@@ -849,6 +891,9 @@ def stage_two_figures():
         sync_net_transitions = []
         trace_length = []
         unf_v = []
+        unf_q = []
+        fits = []
+        costs = []
 
         for entry in contents:
             unf_elapsed_time_negative.append(entry["unf_elapsed_time"])
@@ -859,6 +904,9 @@ def stage_two_figures():
                 sync_net_transitions.append(entry["sync_net_transitions"])
                 trace_length.append(entry["trace_length"])
                 unf_v.append(entry["unf_v"])
+                unf_q.append(entry["unf_q"])
+                fits.append(entry["astar_fitness"])
+                costs.append(entry["unf_cost"])
 
         n, _, patches = ax_unf_t_bar.hist(unf_elapsed_time_negative, 102,
                                           (-1, 100))
@@ -879,24 +927,384 @@ def stage_two_figures():
         fig_dijkstra_t_bar.savefig(
             f"figures/stage_two/{title}_{dijkstra}_t_bar")
 
-        ax_unf_v_t.scatter(unf_v, unf_elapsed_time, c=color)
-        ax_unf_tl_v.scatter(trace_length, unf_v, c=color)
-        ax_unf_sp_v.scatter(sync_net_transitions, unf_v, c=color)
-        ax_unf_sp_t.scatter(sync_net_transitions, unf_elapsed_time, c=color)
+        ax_unf_v_t.scatter(unf_v, unf_elapsed_time, c=color, label=title)
+        ax_unf_q_t.scatter(unf_q, unf_elapsed_time, c=color, label=title)
+        ax_unf_tl_v.scatter(trace_length, unf_v, c=color, label=title)
+        ax_unf_sp_v.scatter(sync_net_transitions, unf_v, c=color, label=title)
+        ax_unf_sp_t.scatter(sync_net_transitions,
+                            unf_elapsed_time,
+                            c=color,
+                            label=title)
+        ax_unf_cost_t.scatter(costs, unf_elapsed_time, c=color, label=title)
+        ax_unf_fit_t.scatter(fits, unf_elapsed_time, c=color, label=title)
 
-        unf_elapsed_time_log = np.emath.logn(2, unf_elapsed_time)
+        unf_elapsed_time_log = np.log(unf_elapsed_time)
+        unf_v_log = np.log(unf_v)
+        unf_q_log = np.log(unf_q)
         ax_unf_sp_tlog.scatter(sync_net_transitions,
                                unf_elapsed_time_log,
-                               c=color)
-        ax_unf_v_tlog.scatter(unf_v, unf_elapsed_time_log, c=color)
+                               c=color,
+                               label=title)
+        ax_unf_vlog_tlog.scatter(unf_v_log,
+                                 unf_elapsed_time_log,
+                                 c=color,
+                                 label=title)
+        ax_unf_qlog_tlog.scatter(unf_q_log,
+                                 unf_elapsed_time_log,
+                                 c=color,
+                                 label=title)
+    fig_unf_v_t.legend()
+    fig_unf_q_t.legend()
+    fig_unf_tl_v.legend()
+    fig_unf_sp_v.legend()
+    fig_unf_sp_t.legend()
+    fig_unf_sp_tlog.legend()
+    fig_unf_vlog_tlog.legend()
+    fig_unf_qlog_tlog.legend()
+    fig_unf_fit_t.legend()
+    fig_unf_cost_t.legend()
 
     fig_unf_v_t.savefig(f"figures/stage_two/{unf}_v_t")
+    fig_unf_q_t.savefig(f"figures/stage_two/{unf}_q_t")
     fig_unf_tl_v.savefig(f"figures/stage_two/{unf}_tl_v")
     fig_unf_sp_v.savefig(f"figures/stage_two/{unf}_sp_v")
     fig_unf_sp_t.savefig(f"figures/stage_two/{unf}_sp_t")
     fig_unf_sp_tlog.savefig(f"figures/stage_two/{unf}_sp_tlog")
-    fig_unf_v_tlog.savefig(f"figures/stage_two/{unf}_v_tlog")
+    fig_unf_vlog_tlog.savefig(f"figures/stage_two/{unf}_vlog_tlog")
+    fig_unf_qlog_tlog.savefig(f"figures/stage_two/{unf}_qlog_tlog")
+    fig_unf_fit_t.savefig(f"figures/stage_two/{unf}_fit_t")
+    fig_unf_cost_t.savefig(f"figures/stage_two/{unf}_cost_t")
     # plt.show()
+
+
+def stage_two_table():
+    res_file_path_title_pairs = [
+        ("results/sepsis/sepsis_05.json", "SP"),
+        ("results/bpic17/bpic17_02.json", "BPIC17"),
+        ("results/bpic19/bpic19_02.json", "BPIC19"),
+        ("results/inthelarge/prAm6.json", "ITL prAm6"),
+        ("results/inthelarge/prBm6.json", "ITL prBm6"),
+        ("results/inthelarge/prCm6.json", "ITL prCm6"),
+        ("results/inthelarge/prDm6.json", "ITL prDm6"),
+        ("results/inthelarge/prEm6.json", "ITL prEm6"),
+        ("results/inthelarge/prFm6.json", "ITL prFm6"),
+        ("results/inthelarge/prGm6.json", "ITL prGm6"),
+        ("results/hospital_billing/hospital_billing_02.json", "HB"),
+        ("results/bpic12/bpic12_02.json", "BPIC12"),
+        ("results/bpic13/bpic13_02.json", "BPIC13"),
+        ("results/traffic/traffic_02.json", "TR"),
+        ("results/bpic13/bpic13_split.json", "BPIC13_SPLIT"),
+        ("results/sepsis/sepsis_split.json", "SP_SPLIT"),
+        ("results/bpic12/bpic12_split.json", "BPIC12_SPLIT"),
+        ("results/bpic17/bpic17_split.json", "BPIC17_SPLIT"),
+        ("results/hospital_billing/hospital_billing_split.json", "HB_SPLIT"),
+        ("results/traffic/traffic_split.json", "TR_SPLIT"),
+    ]
+    for res_file_path, title in res_file_path_title_pairs:
+        with open(res_file_path) as rf:
+            contents = json.load(rf)
+        unf_table = {}
+        unf_q = []
+        unf_v = []
+        unf_t = []
+        unf_tl = []
+
+        astar_table = {}
+        astar_q = []
+        astar_v = []
+        astar_t = []
+        astar_tl = []
+
+        dijkstra_table = {}
+        dijkstra_q = []
+        dijkstra_v = []
+        dijkstra_t = []
+        dijkstra_tl = []
+
+        unf_astar_table = {}
+        tl_unf_astar_complete = []
+        q_unf_unf_astar_complete = []
+        v_unf_unf_astar_complete = []
+        t_unf_unf_astar_complete = []
+
+        q_astar_unf_astar_complete = []
+        v_astar_unf_astar_complete = []
+        t_astar_unf_astar_complete = []
+
+        unf_dijkstra_table = {}
+        tl_unf_dijkstra_complete = []
+        q_unf_unf_dijkstra_complete = []
+        v_unf_unf_dijkstra_complete = []
+        t_unf_unf_dijkstra_complete = []
+
+        q_dijkstra_unf_dijkstra_complete = []
+        v_dijkstra_unf_dijkstra_complete = []
+        t_dijkstra_unf_dijkstra_complete = []
+
+        for entry in contents:
+            if entry["unf_elapsed_time"] != -1:
+                unf_q.append(entry["unf_q"])
+                unf_v.append(entry["unf_v"])
+                unf_t.append(entry["unf_elapsed_time"])
+                unf_tl.append(entry["trace_length"])
+            if entry["astar_elapsed_time"] != -1:
+                astar_q.append(entry["astar_q"])
+                astar_v.append(entry["astar_v"])
+                astar_t.append(entry["astar_elapsed_time"])
+                astar_tl.append(entry["trace_length"])
+            if entry["dijkstra_elapsed_time"] != -1:
+                dijkstra_q.append(entry["dijkstra_q"])
+                dijkstra_v.append(entry["dijkstra_v"])
+                dijkstra_t.append(entry["dijkstra_elapsed_time"])
+                dijkstra_tl.append(entry["trace_length"])
+            if entry["unf_elapsed_time"] != -1 and entry[
+                    "astar_elapsed_time"] != -1:
+                tl_unf_astar_complete.append(entry["trace_length"])
+                q_unf_unf_astar_complete.append(entry["unf_q"])
+                v_unf_unf_astar_complete.append(entry["unf_v"])
+                t_unf_unf_astar_complete.append(entry["unf_elapsed_time"])
+
+                q_astar_unf_astar_complete.append(entry["astar_q"])
+                v_astar_unf_astar_complete.append(entry["astar_v"])
+                t_astar_unf_astar_complete.append(entry["astar_elapsed_time"])
+            if entry["unf_elapsed_time"] != -1 and entry[
+                    "dijkstra_elapsed_time"] != -1:
+                tl_unf_dijkstra_complete.append(entry["trace_length"])
+                q_unf_unf_dijkstra_complete.append(entry["unf_q"])
+                v_unf_unf_dijkstra_complete.append(entry["unf_v"])
+                t_unf_unf_dijkstra_complete.append(entry["unf_elapsed_time"])
+
+                q_dijkstra_unf_dijkstra_complete.append(entry["dijkstra_q"])
+                v_dijkstra_unf_dijkstra_complete.append(entry["dijkstra_v"])
+                t_dijkstra_unf_dijkstra_complete.append(
+                    entry["dijkstra_elapsed_time"])
+        # Unf
+        if len(unf_t) > 0:
+            unf_table["samples"] = len(unf_q)
+            unf_table["avg_trace_length"] = sum(unf_tl) / len(unf_tl)
+            unf_table["min_trace_length"] = min(unf_tl)
+            unf_table["max_trace_length"] = max(unf_tl)
+            unf_table["avg_unf_q"] = sum(unf_q) / len(unf_q)
+            unf_table["min_unf_q"] = min(unf_q)
+            unf_table["max_unf_q"] = max(unf_q)
+            unf_table["avg_unf_v"] = sum(unf_v) / len(unf_v)
+            unf_table["min_unf_v"] = min(unf_v)
+            unf_table["max_unf_v"] = max(unf_v)
+            unf_table["avg_unf_t"] = sum(unf_t) / len(unf_t)
+            unf_table["min_unf_t"] = min(unf_t)
+            unf_table["max_unf_t"] = max(unf_t)
+        if len(astar_t) > 0:
+            # Astar
+            astar_table["samples"] = len(astar_q)
+            astar_table["avg_trace_length"] = sum(astar_tl) / len(astar_tl)
+            astar_table["min_trace_length"] = min(astar_tl)
+            astar_table["max_trace_length"] = max(astar_tl)
+            astar_table["avg_astar_q"] = sum(astar_q) / len(astar_q)
+            astar_table["min_astar_q"] = min(astar_q)
+            astar_table["max_astar_q"] = max(astar_q)
+            astar_table["avg_astar_v"] = sum(astar_v) / len(astar_v)
+            astar_table["min_astar_v"] = min(astar_v)
+            astar_table["max_astar_v"] = max(astar_v)
+            astar_table["avg_astar_t"] = sum(astar_t) / len(astar_t)
+            astar_table["min_astar_t"] = min(astar_t)
+            astar_table["max_astar_t"] = max(astar_t)
+        if len(dijkstra_t) > 0:
+            # Dijkstra
+            dijkstra_table["samples"] = len(dijkstra_q)
+            dijkstra_table["avg_trace_length"] = sum(dijkstra_tl) / len(
+                dijkstra_tl)
+            dijkstra_table["min_trace_length"] = min(dijkstra_tl)
+            dijkstra_table["max_trace_length"] = max(dijkstra_tl)
+            dijkstra_table["avg_dijkstra_q"] = sum(dijkstra_q) / len(
+                dijkstra_q)
+            dijkstra_table["min_dijkstra_q"] = min(dijkstra_q)
+            dijkstra_table["max_dijkstra_q"] = max(dijkstra_q)
+            dijkstra_table["avg_dijkstra_v"] = sum(dijkstra_v) / len(
+                dijkstra_v)
+            dijkstra_table["min_dijkstra_v"] = min(dijkstra_v)
+            dijkstra_table["max_dijkstra_v"] = max(dijkstra_v)
+            dijkstra_table["avg_dijkstra_t"] = sum(dijkstra_t) / len(
+                dijkstra_t)
+            dijkstra_table["min_dijkstra_t"] = min(dijkstra_t)
+            dijkstra_table["max_dijkstra_t"] = max(dijkstra_t)
+
+        # Unf Astar both finished
+        if len(t_astar_unf_astar_complete) > 0:
+            unf_astar_table["samples"] = len(q_unf_unf_astar_complete)
+            unf_astar_table["avg_trace_length"] = sum(
+                tl_unf_astar_complete) / len(tl_unf_astar_complete)
+            unf_astar_table["min_trace_length"] = min(tl_unf_astar_complete)
+            unf_astar_table["max_trace_length"] = max(tl_unf_astar_complete)
+
+            unf_astar_table["avg_unf_q"] = sum(q_unf_unf_astar_complete) / len(
+                q_unf_unf_astar_complete)
+            unf_astar_table["min_unf_q"] = min(q_unf_unf_astar_complete)
+            unf_astar_table["max_unf_q"] = max(q_unf_unf_astar_complete)
+            unf_astar_table["avg_unf_v"] = sum(v_unf_unf_astar_complete) / len(
+                t_unf_unf_astar_complete)
+            unf_astar_table["min_unf_v"] = min(v_unf_unf_astar_complete)
+            unf_astar_table["max_unf_v"] = max(v_unf_unf_astar_complete)
+            unf_astar_table["avg_unf_t"] = sum(t_unf_unf_astar_complete) / len(
+                t_unf_unf_astar_complete)
+            unf_astar_table["min_unf_t"] = min(t_unf_unf_astar_complete)
+            unf_astar_table["max_unf_t"] = max(t_unf_unf_astar_complete)
+
+            unf_astar_table["avg_astar_q"] = sum(
+                q_astar_unf_astar_complete) / len(q_astar_unf_astar_complete)
+            unf_astar_table["min_astar_q"] = min(q_astar_unf_astar_complete)
+            unf_astar_table["max_astar_q"] = max(q_astar_unf_astar_complete)
+            unf_astar_table["avg_astar_v"] = sum(
+                v_astar_unf_astar_complete) / len(t_astar_unf_astar_complete)
+            unf_astar_table["min_astar_v"] = min(v_astar_unf_astar_complete)
+            unf_astar_table["max_astar_v"] = max(v_astar_unf_astar_complete)
+            unf_astar_table["avg_astar_t"] = sum(
+                t_astar_unf_astar_complete) / len(t_astar_unf_astar_complete)
+            unf_astar_table["min_astar_t"] = min(t_astar_unf_astar_complete)
+            unf_astar_table["max_astar_t"] = max(t_astar_unf_astar_complete)
+
+        if len(t_unf_unf_dijkstra_complete) > 0:
+            # Unf Dijkstra both finished
+            unf_dijkstra_table["samples"] = len(q_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["avg_trace_length"] = sum(
+                tl_unf_dijkstra_complete) / len(tl_unf_dijkstra_complete)
+            unf_dijkstra_table["min_trace_length"] = min(
+                tl_unf_dijkstra_complete)
+            unf_dijkstra_table["max_trace_length"] = max(
+                tl_unf_dijkstra_complete)
+
+            unf_dijkstra_table["avg_unf_q"] = sum(
+                q_unf_unf_dijkstra_complete) / len(q_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["min_unf_q"] = min(q_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["max_unf_q"] = max(q_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["avg_unf_v"] = sum(
+                v_unf_unf_dijkstra_complete) / len(t_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["min_unf_v"] = min(v_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["max_unf_v"] = max(v_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["avg_unf_t"] = sum(
+                t_unf_unf_dijkstra_complete) / len(t_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["min_unf_t"] = min(t_unf_unf_dijkstra_complete)
+            unf_dijkstra_table["max_unf_t"] = max(t_unf_unf_dijkstra_complete)
+
+            unf_dijkstra_table["avg_dijkstra_q"] = sum(
+                q_dijkstra_unf_dijkstra_complete) / len(
+                    q_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["min_dijkstra_q"] = min(
+                q_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["max_dijkstra_q"] = max(
+                q_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["avg_dijkstra_v"] = sum(
+                v_dijkstra_unf_dijkstra_complete) / len(
+                    t_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["min_dijkstra_v"] = min(
+                v_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["max_dijkstra_v"] = max(
+                v_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["avg_dijkstra_t"] = sum(
+                t_dijkstra_unf_dijkstra_complete) / len(
+                    t_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["min_dijkstra_t"] = min(
+                t_dijkstra_unf_dijkstra_complete)
+            unf_dijkstra_table["max_dijkstra_t"] = max(
+                t_dijkstra_unf_dijkstra_complete)
+        print(res_file_path)
+        print(unf_table)
+        print(astar_table)
+        print(dijkstra_table)
+        print(unf_astar_table)
+        print(unf_dijkstra_table)
+
+
+def stage_three_table():
+    res_file_path_title_pairs = [
+        ("results/sepsis/sepsis_05.json",
+         "results/streaming/sepsis/sepsis_05.json", "SP"),
+        ("results/bpic17/bpic17_02.json",
+         "results/streaming/bpic17/bpic17_02.json", "BPIC17"),
+        ("results/bpic19/bpic19_02.json",
+         "results/streaming/bpic19/bpic19_02.json", "BPIC19"),
+        ("results/inthelarge/prAm6.json",
+         "results/streaming/inthelarge/prAm6.json", "ITL prAm6"),
+        ("results/inthelarge/prBm6.json",
+         "results/streaming/inthelarge/prBm6.json", "ITL prBm6"),
+        ("results/inthelarge/prCm6.json",
+         "results/streaming/inthelarge/prCm6.json", "ITL prCm6"),
+        ("results/inthelarge/prDm6.json",
+         "results/streaming/inthelarge/prDm6.json", "ITL prDm6"),
+        ("results/inthelarge/prEm6.json",
+         "results/streaming/inthelarge/prEm6.json", "ITL prEm6"),
+        ("results/inthelarge/prFm6.json",
+         "results/streaming/inthelarge/prFm6.json", "ITL prFm6"),
+        # ("results/inthelarge/prGm6.json",
+        #  "results/streaming/inthelarge/prGm6.json", "ITL prGm6"),
+    ]
+    for res_file_path_offline, res_file_path_online, title in res_file_path_title_pairs:
+        with open(res_file_path_offline) as rf:
+            offline = json.load(rf)
+        with open(res_file_path_online) as rf:
+            online = json.load(rf)
+        on_q = []
+        on_v = []
+        on_t = []
+
+        q_off_complete = []
+        v_off_complete = []
+        t_off_complete = []
+
+        q_on_complete = []
+        v_on_complete = []
+        t_on_complete = []
+
+        for i in range(len(online)):
+            entry_off = offline[i]
+            entry_on = online[i]
+            if entry_on["unf_elapsed_time"] != -1:
+                on_q.append(entry_on["unf_q"])
+                on_v.append(entry_on["unf_v"])
+                on_t.append(entry_on["unf_elapsed_time"])
+                # if entry_off["trace_length"] == entry_on["trace_length"]:
+                if entry_on["unf_elapsed_time"] != -1 and entry_off[
+                        "unf_elapsed_time"] != -1:
+                    q_off_complete.append(entry_off["unf_q"])
+                    v_off_complete.append(entry_off["unf_v"])
+                    t_off_complete.append(entry_off["unf_elapsed_time"])
+
+                    q_on_complete.append(entry_on["unf_q"])
+                    v_on_complete.append(entry_on["unf_v"])
+                    t_on_complete.append(entry_on["unf_elapsed_time"])
+        # Online
+        if len(on_t) > 0:
+            print(f"{title} samples: {len(on_t)}")
+            print(
+                f"on q {title}, {sum(on_q)/len(on_q)}, {min(on_q)}, {max(on_q)}"
+            )
+            print(
+                f"on v {title}, {sum(on_v)/len(on_v)}, {min(on_v)}, {max(on_v)}"
+            )
+            print(
+                f"on t {title}, {sum(on_t)/len(on_t)}, {min(on_t)}, {max(on_t)}"
+            )
+
+        # Unf Astar both finished
+        if len(t_on_complete) > 0:
+            print(f"{title} samples: {len(q_off_complete)}")
+            print(
+                f"off q {title}, {sum(q_off_complete)/len(q_off_complete)}, {min(q_off_complete)}, {max(q_off_complete)}"
+            )
+            print(
+                f"off v {title}, {sum(v_off_complete)/len(v_off_complete)}, {min(v_off_complete)}, {max(v_off_complete)}"
+            )
+            print(
+                f"off t {title}, {sum(t_off_complete)/len(t_off_complete)}, {min(t_off_complete)}, {max(t_off_complete)}"
+            )
+            print(
+                f"on q {title}, {sum(q_on_complete)/len(q_on_complete)}, {min(q_on_complete)}, {max(q_on_complete)}"
+            )
+            print(
+                f"on v {title}, {sum(v_on_complete)/len(v_on_complete)}, {min(v_on_complete)}, {max(v_on_complete)}"
+            )
+            print(
+                f"on t {title}, {sum(t_on_complete)/len(t_on_complete)}, {min(t_on_complete)}, {max(t_on_complete)}"
+            )
 
 
 def color_plot(x, y, title):
@@ -1098,7 +1506,7 @@ def test_plot():
          "data/sepsis/Sepsis Cases - Event Log.xes", 1.2307692307692308,
          1.391304347826087),
         ("results/bpic17/bpic17_02.json", "data/bpic17/BPI Challenge 2017.xes",
-         1.056338028169014, 1.6666666666666667),
+         1.0555555555555556, 1.6521739130434783),
         ("results/bpic19/bpic19_02.json", "data/bpic19/BPI_Challenge_2019.xes",
          1.1123595505617978, 1.8679245283018868),
         ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn",
@@ -1113,21 +1521,21 @@ def test_plot():
          1.1781818181818182, 1.1696750902527075),
         ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn",
          1.2842809364548495, 1.0607734806629834),
+        ("results/hospital_billing/hospital_billing_02.json",
+         "data/hospital_billing/Hospital Billing - Event Log.xes",
+         1.0178571428571428, 1.78125),
+        ("results/bpic12/bpic12_02.json", "data/bpic12/BPI_Challenge_2012.xes",
+         1.09375, 1.7073170731707317),
+        ("results/bpic13/bpic13_02.json",
+         "data/bpic13/BPI_Challenge_2013_incidents.xes", 1.0833333333333333,
+         1.3)
     ]
     colorss = [
-        "red",
-        "green",
-        "blue",
-        "pink",
-        "purple",
-        "magenta",
-        "turquoise",
-        "cyan",
-        "yellow",
-        "orange",
+        "red", "green", "blue", "pink", "purple", "magenta", "turquoise",
+        "cyan", "yellow", "orange", "gray", "chocolate", "black"
     ]
     color_index = 0
-    fig, ax = plot_2d("sp", "v", "")
+    fig, ax = plot_2d("visited states", "elapsed time (s)", "unfolding")
     # fig, ax1 = plot_2d("v", "t", "unf")
     # fig, ax2 = plot_2d("q", "t", "unf")
     # fig, ax3 = plot_2d("tl", "t", "unf")
@@ -1154,25 +1562,21 @@ def test_plot():
     #         if t["trace_length"] > max_tl:
     #             max_tl = t["trace_length"]
 
-    for res_file, model_file, conc_factor, exc_factor in dir_pairs:
-        if model_file.endswith(".tpn"):
-            model_net, model_im, model_fm = ptn.import_from_tpn(model_file)
-        else:
-            xes_df = pm4py.read_xes(model_file)
-            noise_threshold = 0.5 if "sepsis" in model_file else 0.2
-            model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(
-                xes_df, noise_threshold=noise_threshold)
-        avg_t_outgoing_arc = sum(
-            [len(t.out_arcs)
-             for t in model_net.transitions]) / len(model_net.transitions)
-        avg_p_outgoing_arc = sum([len(p.out_arcs) for p in model_net.places
-                                  ]) / len(model_net.places)
-        avg_t_incoming_arc = sum(
-            [len(t.in_arcs)
-             for t in model_net.transitions]) / len(model_net.transitions)
-        print(
-            f"{model_file}, {avg_t_outgoing_arc}, {avg_p_outgoing_arc}, {avg_t_incoming_arc}"
-        )
+    for res_file, model_file, exc_factor, conc_factor in dir_pairs:
+        # if model_file.endswith(".tpn"):
+        #     model_net, model_im, model_fm = ptn.import_from_tpn(model_file)
+        # else:
+        #     xes_df = pm4py.read_xes(model_file)
+        #     noise_threshold = 0.5 if "sepsis" in model_file else 0.2
+        #     model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(
+        #         xes_df, noise_threshold=noise_threshold)
+        #     # pm4py.view_petri_net(model_net, model_im, model_fm)
+        # avg_t_outgoing_arc = sum(
+        #     [len(t.out_arcs)
+        #      for t in model_net.transitions]) / len(model_net.transitions)
+        # avg_p_outgoing_arc = sum([len(p.out_arcs) for p in model_net.places
+        #                           ]) / len(model_net.places)
+        # print(f"{model_file}, {avg_t_outgoing_arc}, {avg_p_outgoing_arc}")
         subsize = []
         subx = []
         suby = []
@@ -1187,7 +1591,7 @@ def test_plot():
                 subsize.append(t["astar_fitness"])
                 subalpha.append(t["astar_fitness"])
                 times.append(t["unf_elapsed_time"])
-                subx.append(t["sync_net_transitions"])
+                subx.append(t["astar_fitness"])
                 suby.append(t["unf_elapsed_time"])
                 colors.append(color)
                 # ax.scatter(t["trace_length"],t["unf_elapsed_time"],c=color,s=size)
@@ -1206,16 +1610,17 @@ def test_plot():
         y.extend(suby)
         sizes.extend(subsize)
         alphas.extend(subalpha)
-    # sizes = [x * 10 for x in sizes]
+    # sizes = [x * 25 for x in sizes]
     # alphas=[x if x<= 1 else 1 for x in alphas]
     # times = [x*100 for x in times]
     # times = np.emath.logn(2, times)
-    # y = np.log(y)
+    x = np.log(x)
+    y = np.log(y)
     # colors=[[1,0,0,x] for x in alphas]
-    ax.scatter(x, y, c=colors, s=sizes)
+    ax.scatter(x, y, c=colors)
     # ax.set_xscale("log")
     # ax.set_yscale("log")
-    # plt.show()
+    plt.show()
 
 
 def regress_a_priori():
@@ -1224,7 +1629,7 @@ def regress_a_priori():
          "data/sepsis/Sepsis Cases - Event Log.xes", 1.2307692307692308,
          1.391304347826087),
         ("results/bpic17/bpic17_02.json", "data/bpic17/BPI Challenge 2017.xes",
-         1.056338028169014, 1.6666666666666667),
+         1.0555555555555556, 1.6521739130434783),
         ("results/bpic19/bpic19_02.json", "data/bpic19/BPI_Challenge_2019.xes",
          1.1123595505617978, 1.8679245283018868),
         ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn",
@@ -1239,6 +1644,14 @@ def regress_a_priori():
          1.1781818181818182, 1.1696750902527075),
         ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn",
          1.2842809364548495, 1.0607734806629834),
+        ("results/hospital_billing/hospital_billing_02.json",
+         "data/hospital_billing/Hospital Billing - Event Log.xes",
+         1.0178571428571428, 1.78125),
+        ("results/bpic12/bpic12_02.json", "data/bpic12/BPI_Challenge_2012.xes",
+         1.09375, 1.7073170731707317),
+        ("results/bpic13/bpic13_02.json",
+         "data/bpic13/BPI_Challenge_2013_incidents.xes", 1.0833333333333333,
+         1.3)
     ]
     x = []
     y = []
@@ -1253,9 +1666,12 @@ def regress_a_priori():
             if t["unf_elapsed_time"] != -1:
                 sync_prod_size = t["sync_net_transitions"]
                 tl = t["trace_length"]
+                model_size = t["model_net_transitions"]
 
                 indep = [
+                    # tl,
                     sync_prod_size,
+                    # model_size,
                     exc_factor,
                     conc_factor,
                 ]
@@ -1263,12 +1679,11 @@ def regress_a_priori():
                 x.append(indep)
                 y.append(np.log(t["unf_elapsed_time"]))
 
+    # print(stats.spearmanr(x))
+
     # x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(
     # x, y, random_state=2)
-
     m = SMWrapper(sm.OLS)
-
-    poly = sklearn.preprocessing.PolynomialFeatures(interaction_only=True)
 
     # Scale each feature
     # Use regular scale instead of robust scale because we don't have "true" outliers because our outliers aren't by random chance
@@ -1277,15 +1692,137 @@ def regress_a_priori():
     # Pipeline to not get dataleaks
     pipeline = sklearn.pipeline.Pipeline([
         ("scaler", scaler),
-        # ("poly", poly),
         ("model", m),
     ])
 
     pipeline.fit(x, y)
     score = pipeline.score(x, y)
     print(score)
-    print(pipeline["model"].results_.summary())
+    for tab in pipeline["model"].results_.summary().tables:
+        print(tab.as_latex_tabular())
     # model = pipeline.fit(x, y)
+
+    # Residuals plot
+    y_pred = pipeline.predict(x)
+    fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+    sklearn.metrics.PredictionErrorDisplay.from_predictions(
+        y,
+        y_pred=y_pred,
+        kind="actual_vs_predicted",
+        subsample=100,
+        ax=axs[0],
+        random_state=0,
+    )
+    axs[0].set_title("Actual vs. Predicted values")
+    sklearn.metrics.PredictionErrorDisplay.from_predictions(
+        y,
+        y_pred=y_pred,
+        kind="residual_vs_predicted",
+        subsample=100,
+        ax=axs[1],
+        random_state=0,
+    )
+    axs[1].set_title("Residuals vs. Predicted Values")
+    fig.suptitle("Plotting predictions")
+    plt.tight_layout()
+    plt.show()
+
+
+def regress():
+    dir_pairs = [
+        ("results/sepsis/sepsis_05.json",
+         "data/sepsis/Sepsis Cases - Event Log.xes", 1.2307692307692308,
+         1.391304347826087),
+        ("results/bpic17/bpic17_02.json", "data/bpic17/BPI Challenge 2017.xes",
+         1.0555555555555556, 1.6521739130434783),
+        ("results/bpic19/bpic19_02.json", "data/bpic19/BPI_Challenge_2019.xes",
+         1.1123595505617978, 1.8679245283018868),
+        ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn",
+         1.159779614325069, 1.2132564841498559),
+        ("results/inthelarge/prBm6.json", "data/inthelarge/prBm6.tpn",
+         1.1798107255520505, 1.1798107255520505),
+        ("results/inthelarge/prCm6.json", "data/inthelarge/prCm6.tpn",
+         1.1798107255520505, 1.1798107255520505),
+        ("results/inthelarge/prDm6.json", "data/inthelarge/prDm6.tpn",
+         1.324009324009324, 1.0737240075614367),
+        ("results/inthelarge/prEm6.json", "data/inthelarge/prEm6.tpn",
+         1.1781818181818182, 1.1696750902527075),
+        ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn",
+         1.2842809364548495, 1.0607734806629834),
+        ("results/hospital_billing/hospital_billing_02.json",
+         "data/hospital_billing/Hospital Billing - Event Log.xes",
+         1.0178571428571428, 1.78125),
+        ("results/bpic12/bpic12_02.json", "data/bpic12/BPI_Challenge_2012.xes",
+         1.09375, 1.7073170731707317),
+        ("results/bpic13/bpic13_02.json",
+         "data/bpic13/BPI_Challenge_2013_incidents.xes", 1.0833333333333333,
+         1.3)
+    ]
+    x = []
+    y = []
+    for res_file, model_file, conc_factor, exc_factor in dir_pairs:
+        # x = []
+        # y = []
+        # print(res_file)
+        with open(res_file) as rf:
+            contents = json.load(rf)
+
+        for t in contents:
+            if t["unf_elapsed_time"] != -1:
+                sync_prod_size = t["sync_net_transitions"]
+                tl = t["trace_length"]
+                fit = t["astar_fitness"]
+                cost = t["unf_cost"]
+                v = t["unf_v"]
+                q = t["unf_q"]
+
+                indep = [
+                    # tl,
+                    sync_prod_size,
+                    # exc_factor,
+                    # conc_factor,
+                    np.log(v),
+                    np.log(q),
+                    # fit,
+                    # cost,
+                ]
+
+                x.append(indep)
+                y.append(np.log(t["unf_elapsed_time"]))
+
+    # print(stats.spearmanr(x))
+
+    # x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(
+    # x, y, random_state=2)
+
+    m = SMWrapper(sm.OLS)
+
+    # Scale each feature
+    # Use regular scale instead of robust scale because we don't have "true" outliers because our outliers aren't by random chance
+    scaler = sklearn.preprocessing.StandardScaler()
+
+    # Pipeline to not get dataleaks
+    pipeline = sklearn.pipeline.Pipeline([
+        ("scaler", scaler),
+        ("model", m),
+    ])
+
+    # selector = sklearn.feature_selection.RFE(
+    #     pipeline,
+    #     n_features_to_select=5,
+    # )
+    # selector.fit(x, y)
+    # score = selector.score(x, y)
+    # print(score)
+    # print(selector["model"].results_.summary())
+    pipeline.fit(x, y)
+    score = pipeline.score(x, y)
+    print(score)
+    for tab in pipeline["model"].results_.summary().tables:
+        print(tab.as_latex_tabular())
+
+    # print(pipeline["model"].results_.summary())
+    model = pipeline.fit(x, y)
 
     # Residuals plot
     y_pred = pipeline.predict(x)
@@ -1313,7 +1850,57 @@ def regress_a_priori():
     plt.show()
 
 
-def regress():
+def fix_sp_count_split():
+    dir_pairs = [
+        ("results/bpic13/bpic13_split.json", "data/bpic13/bpic13_split.bpmn",
+         "data/bpic13/BPI_Challenge_2013_incidents.xes"),
+        ("results/sepsis/sepsis_split.json", "data/sepsis/sepsis_split.bpmn",
+         "data/sepsis/Sepsis Cases - Event Log.xes"),
+        ("results/bpic12/bpic12_split.json", "data/bpic12/bpic12_split.bpmn",
+         "data/bpic12/BPI_Challenge_2012.xes"),
+        ("results/bpic17/bpic17_split.json", "data/bpic17/bpic17_split.bpmn",
+         "data/bpic17/BPI Challenge 2017.xes"),
+        ("results/hospital_billing/hospital_billing_split.json",
+         "data/hospital_billing/hospital_billing_split.bpmn",
+         "data/hospital_billing/Hospital Billing - Event Log.xes"),
+        ("results/traffic/traffic_split.json",
+         "data/traffic/traffic_split.bpmn",
+         "data/traffic/Road_Traffic_Fine_Management_Process.xes"),
+    ]
+    for res_file, model_file, data_file in dir_pairs:
+        xes_df = pm4py.read_xes(data_file)
+        model_net, model_im, model_fm = pm4py.convert_to_petri_net(
+            pm4py.read_bpmn(model_file))
+        xes_el = pm4py.convert_to_event_log(pm4py.format_dataframe(xes_df))
+
+        if "bpic" in model_file or "hospital" in model_file or "traffic" in model_file:
+            import random
+            random.seed(1)
+            traces = random.sample(xes_el, 1000)
+        else:
+            traces = xes_el
+
+        with open(res_file, "r") as rf:
+            file_data = json.load(rf)
+
+        for i in range(len(traces)):
+            trace = traces[i]
+            trace_net, trace_net_im, trace_net_fm = ptn.construct_trace_net(
+                trace, "concept:name", "concept:name")
+
+            sync_net, sync_im, sync_fm, cost_function = ptn.construct_synchronous_product(
+                model_net, model_im, model_fm, trace_net, trace_net_im,
+                trace_net_fm)
+            file_data[i]["sync_net_transitions"] = len(sync_net.transitions)
+            file_data[i]["sync_net_places"] = len(sync_net.places)
+            file_data[i]["model_net_transitions"] = len(model_net.transitions)
+        with open(res_file, "w") as wf:
+            rstr = json.dumps(file_data, indent=4)
+            wf.write(rstr)
+
+
+def fix_sp_count():
+    # pass
     dir_pairs = [
         ("results/sepsis/sepsis_05.json",
          "data/sepsis/Sepsis Cases - Event Log.xes"),
@@ -1327,126 +1914,78 @@ def regress():
         ("results/inthelarge/prDm6.json", "data/inthelarge/prDm6.tpn"),
         ("results/inthelarge/prEm6.json", "data/inthelarge/prEm6.tpn"),
         ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn"),
+        ("results/inthelarge/prGm6.json", "data/inthelarge/prGm6.tpn"),
+        ("results/hospital_billing/hospital_billing_02.json",
+         "data/hospital_billing/Hospital Billing - Event Log.xes"),
+        ("results/bpic12/bpic12_02.json",
+         "data/bpic12/BPI_Challenge_2012.xes"),
+        ("results/bpic13/bpic13_02.json",
+         "data/bpic13/BPI_Challenge_2013_incidents.xes"),
+        ("results/traffic/traffic_02.json",
+         "data/traffic/Road_Traffic_Fine_Management_Process.xes"),
     ]
-    x = []
-    y = []
     for res_file, model_file in dir_pairs:
-        # print(res_file)
-        with open(res_file) as rf:
-            contents = json.load(rf)
+        if model_file.endswith(".tpn"):
+            data_file = model_file.removesuffix("tpn") + "xes"
+            xes_df = pm4py.read_xes(data_file)
+            model_net, model_im, model_fm = ptn.import_from_tpn(model_file)
+        else:
+            xes_df = pm4py.read_xes(model_file)
+            noise_threshold = 0.5 if "sepsis" in model_file else 0.2
+            model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(
+                xes_df, noise_threshold=noise_threshold)
+        xes_el = pm4py.convert_to_event_log(pm4py.format_dataframe(xes_df))
 
-        for t in contents:
-            if t["unf_elapsed_time"] != -1 and t["astar_fitness"] != -1:
-                trace_length = t["trace_length"]
-                sync_prod_size = t["sync_net_transitions"]
-                fitness = t["astar_fitness"]
-                cost = t["unf_cost"]
-                visited_states = t["unf_v"]
-                queued_states = t["unf_q"]
-                # Applying recursive feature elimination we end up with tl, v, cost and fitness.
-                # We remove queued_states because it's the smallest (negative) coefficient
-                # We fit again, then remove sync_prod_size because it's again the smallest (negative)
-                # We leave it at this, since now all coefficients are positive
-                # Further feature removal drops coeffient of determination substantially so we don't remove any further features
-                indep = [
-                    trace_length,
-                    visited_states,
-                    sync_prod_size,
-                    cost,
-                    queued_states,
-                    fitness,
-                ]
-                x.append(indep)
-                y.append(t["unf_elapsed_time"])
+        if "bpic" in model_file or "hospital" in model_file or "traffic" in model_file:
+            import random
+            random.seed(1)
+            traces = random.sample(xes_el, 1000)
+        else:
+            traces = xes_el
 
-    # Spearman R to show multicolinearity is very present
-    print(stats.spearmanr(x))
-    # 5 folds cause that sounds reasonable and is the standard
-    # shuffle because we don't want any folds to be 1 dataset only
-    cv = sklearn.model_selection.KFold(shuffle=True, random_state=1)
+        with open(res_file, "r") as rf:
+            file_data = json.load(rf)
 
-    # polylolly?
-    poly = sklearn.preprocessing.PolynomialFeatures(2)
-    # Use Ridge because multicolinearity between many of the metrics
-    m = sklearn.linear_model.RidgeCV(scoring="r2", cv=cv)
-    # Scale each feature
-    # Use regular scale instead of robust scale because we don't have "true" outliers because our outliers aren't by random chance
-    scaler = sklearn.preprocessing.StandardScaler()
+        for i in range(len(traces)):
+            trace = traces[i]
+            trace_net, trace_net_im, trace_net_fm = ptn.construct_trace_net(
+                trace, "concept:name", "concept:name")
 
-    # Pipeline to not get dataleaks
-    pipeline = sklearn.pipeline.Pipeline([
-        ("scaler", scaler),
-        ("poly", poly),
-        ("model", m),
-    ])
-
-    # scores = sklearn.model_selection.cross_val_score(pipeline, x, y, cv=cv)
-    # brief interpretation of results as follows:
-    # coefficient for trace length is highest, but the range of
-    scores = sklearn.model_selection.cross_validate(pipeline,
-                                                    x,
-                                                    y,
-                                                    cv=cv,
-                                                    scoring=["r2"],
-                                                    return_estimator=True)
-    print(scores["test_r2"])
-    for p in scores["estimator"]:
-        pass
-        # print(f"coefficients: {p["model"].coef_}")
+            sync_net, sync_im, sync_fm, cost_function = ptn.construct_synchronous_product(
+                model_net, model_im, model_fm, trace_net, trace_net_im,
+                trace_net_fm)
+            file_data[i]["sync_net_transitions"] = len(sync_net.transitions)
+            file_data[i]["sync_net_places"] = len(sync_net.places)
+            file_data[i]["model_net_transitions"] = len(model_net.transitions)
+        with open(res_file, "w") as wf:
+            rstr = json.dumps(file_data, indent=4)
+            wf.write(rstr)
 
 
-def fix_sp_count():
-    pass
-    # dir_pairs = [
-    #     ("results/sepsis/sepsis_05.json",
-    #      "data/sepsis/Sepsis Cases - Event Log.xes"),
-    #     ("results/bpic17/bpic17_02.json",
-    #      "data/bpic17/BPI Challenge 2017.xes"),
-    #     ("results/bpic19/bpic19_02.json",
-    #      "data/bpic19/BPI_Challenge_2019.xes"),
-    #     ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn"),
-    #     ("results/inthelarge/prBm6.json", "data/inthelarge/prBm6.tpn"),
-    #     ("results/inthelarge/prCm6.json", "data/inthelarge/prCm6.tpn"),
-    #     ("results/inthelarge/prDm6.json", "data/inthelarge/prDm6.tpn"),
-    #     ("results/inthelarge/prEm6.json", "data/inthelarge/prEm6.tpn"),
-    #     ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn"),
-    #     ("results/inthelarge/prGm6.json", "data/inthelarge/prGm6.tpn")
-    # ]
-    # for res_file, model_file in dir_pairs:
-    #     if model_file.endswith(".tpn"):
-    #         data_file = model_file.removesuffix("tpn") + "xes"
-    #         xes_df = pm4py.read_xes(data_file)
-    #         model_net, model_im, model_fm = ptn.import_from_tpn(model_file)
-    #     else:
-    #         xes_df = pm4py.read_xes(model_file)
-    #         noise_threshold = 0.5 if "sepsis" in model_file else 0.2
-    #         model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(
-    #             xes_df, noise_threshold=noise_threshold)
-    #     xes_el = pm4py.convert_to_event_log(pm4py.format_dataframe(xes_df))
-
-    #     if "bpic" in model_file:
-    #         import random
-    #         random.seed(1)
-    #         traces = random.sample(xes_el, 1000)
-    #     else:
-    #         traces = xes_el
-
-    #     with open(res_file, "r") as rf:
-    #         file_data = json.load(rf)
-
-    #     for i in range(len(traces)):
-    #         trace = traces[i]
-    #         trace_net, trace_net_im, trace_net_fm = ptn.construct_trace_net(
-    #             trace, "concept:name", "concept:name")
-
-    #         sync_net, sync_im, sync_fm, cost_function = ptn.construct_synchronous_product(
-    #             model_net, model_im, model_fm, trace_net, trace_net_im,
-    #             trace_net_fm)
-    #         file_data[i]["sync_net_transitions"] = len(sync_net.transitions)
-    #         file_data[i]["sync_net_places"] = len(sync_net.places)
-    #     with open(res_file, "w") as wf:
-    #         rstr = json.dumps(file_data, indent=4)
-    #         wf.write(rstr)
+def factors():
+    datasets = [
+        ("results/bpic13/bpic13_split.json", "data/bpic13/bpic13_split.bpmn",
+         1.1666666666666667, 1.0),
+        ("results/sepsis/sepsis_split.json", "data/sepsis/sepsis_split.bpmn",
+         1.125, 1.35),
+        ("results/bpic12/bpic12_split.json", "data/bpic12/bpic12_split.bpmn",
+         1.0, 1.5217391304347827),
+        ("results/bpic17/bpic17_split.json", "data/bpic17/bpic17_split.bpmn",
+         1.0, 1.3571428571428572),
+        ("results/hospital_billing/hospital_billing_split.json",
+         "data/hospital_billing/hospital_billing_split.bpmn",
+         1.0333333333333334, 1.4090909090909092),
+        ("results/traffic/traffic_split.json",
+         "data/traffic/traffic_split.bpmn", 1.0588235294117647, 1.2),
+    ]
+    for _, dataset in datasets:
+        model_net, i, f = pm4py.convert_to_petri_net(pm4py.read_bpmn(dataset))
+        avg_t_outgoing_arc = sum(
+            [len(t.out_arcs)
+             for t in model_net.transitions]) / len(model_net.transitions)
+        avg_p_outgoing_arc = sum([len(p.out_arcs) for p in model_net.places
+                                  ]) / len(model_net.places)
+        print(f"{dataset}, {avg_t_outgoing_arc}, {avg_p_outgoing_arc}")
 
 
 def add_metrics():
@@ -1553,8 +2092,30 @@ if __name__ == "__main__":
     # table()
     # view_models()
     # color_plot("v", "t", "unf")
+    # fix_sp_count()
     # regress()
     # test_plot()
-    regress_a_priori()
+    # regress_a_priori()
+    # datasets = [
+    #     ("results/bpic13/bpic13_split.json", "data/bpic13/bpic13_split.bpmn"),
+    #     ("results/sepsis/sepsis_split.json", "data/sepsis/sepsis_split.bpmn"),
+    #     ("results/bpic12/bpic12_split.json", "data/bpic12/bpic12_split.bpmn"),
+    #     ("results/bpic17/bpic17_split.json", "data/bpic17/bpic17_split.bpmn"),
+    #     ("results/hospital_billing/hospital_billing_split.json",
+    #      "data/hospital_billing/hospital_billing_split.bpmn"),
+    #     ("results/traffic/traffic_split.json",
+    #      "data/traffic/traffic_split.bpmn"),
+    # ]
+    # for dataset in datasets:
+    #     bpmn = pm4py.read_bpmn(dataset)
+    #     n, i, f = pm4py.convert_to_petri_net(bpmn)
+    #     print(pm4py.check_soundness(n, i, f)[0])
+    #     pm4py.view_petri_net(n, i, f)
+    # pm4py.view_bpmn(bpmn)
+    # fix_sp_count_split()
+    # stage_two_table()
+    factors()
+    # preliminary("preliminary_sepsis_0_noise.json")
     # view_models()
+    # stage_three_table()
 # TODO check avg number of input places for each model. higher should mean slower?
