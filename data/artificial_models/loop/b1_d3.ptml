@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="aed35c96-1d56-4389-ab71-595299bc5651" root="b1f31a80-cf90-4250-b696-cfc41a6a8029" id="d8933267-bed2-4755-95ce-5deed861d633">
+    <xorLoop name="" id="b1f31a80-cf90-4250-b696-cfc41a6a8029"/>
+    <sequence name="" id="581169e0-83ac-4464-8d4d-ed9782740b2c"/>
+    <automaticTask name="" id="1ca2b0af-a437-4346-87c5-b980d2222ffd"/>
+    <manualTask name="fashion superior virtualization" id="916e8ecb-a21e-451d-b4e8-a03f9613b29e"/>
+    <manualTask name="recaptiualize enterprise convergence" id="2f92c022-13f0-44d5-8d9f-0582dd8a4ab4"/>
+    <manualTask name="unleash on-demand functionalities" id="3c927579-0c17-4bcd-9d64-9ee4535c143e"/>
+    <parentsNode id="e0e763d6-4e9d-4f2e-8b53-f70558b72435" sourceId="b1f31a80-cf90-4250-b696-cfc41a6a8029" targetId="581169e0-83ac-4464-8d4d-ed9782740b2c"/>
+    <parentsNode id="523fbbf9-8350-42f3-9281-bc8c479927b6" sourceId="b1f31a80-cf90-4250-b696-cfc41a6a8029" targetId="1ca2b0af-a437-4346-87c5-b980d2222ffd"/>
+    <parentsNode id="ef29aeff-5853-4654-beea-aa9d26523069" sourceId="581169e0-83ac-4464-8d4d-ed9782740b2c" targetId="916e8ecb-a21e-451d-b4e8-a03f9613b29e"/>
+    <parentsNode id="e4ffa149-99bb-4b03-9e00-927c234fb7ec" sourceId="581169e0-83ac-4464-8d4d-ed9782740b2c" targetId="2f92c022-13f0-44d5-8d9f-0582dd8a4ab4"/>
+    <parentsNode id="a7ec204a-d26d-48cc-ac96-cec06cb53df6" sourceId="581169e0-83ac-4464-8d4d-ed9782740b2c" targetId="3c927579-0c17-4bcd-9d64-9ee4535c143e"/>
+  </processTree>
+</ptml>

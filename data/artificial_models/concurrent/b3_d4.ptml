@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="7db54615-c75a-45db-95f5-78dc205b6855" root="25362509-c861-47ef-b59b-1257ffde7f79" id="257a0f79-8ee5-46bb-aacd-397e1dccbc45">
+    <and name="" id="25362509-c861-47ef-b59b-1257ffde7f79"/>
+    <sequence name="" id="20ee2870-009a-48a5-a89e-b8f4b6edf290"/>
+    <sequence name="" id="030eb19b-cdce-4b4c-a6b8-54cb201be3f2"/>
+    <sequence name="" id="3c6dda21-4b5b-4702-801f-c3092d6eaf3d"/>
+    <manualTask name="expedite business growth strategies" id="d37bc1e5-ef6f-4cd8-bde9-a66bcdec54cc"/>
+    <manualTask name="mesh innovative web-readiness" id="fa1f56be-bba9-4b5b-b974-700f4a9d1c34"/>
+    <manualTask name="myocardinate cross functional potentialities" id="8e3e772f-0ab2-4266-abb2-70e2de726723"/>
+    <manualTask name="predominate state of the art value" id="d650be09-cf30-47e3-aca9-d71a4400edce"/>
+    <manualTask name="monetize hyperscale infomediaries" id="f2e53d21-191f-424d-9b47-0c62679d233f"/>
+    <manualTask name="impact focused ROI" id="b4338f7a-69dd-4aab-8083-abf67b0c28d1"/>
+    <manualTask name="strategize resource-sucking core competencies" id="dd2d995f-a0a1-4329-ab63-64022cb844a6"/>
+    <manualTask name="strategize cutting-edge growth strategies" id="2df29d02-5119-49f0-926b-be7eb5220a4c"/>
+    <manualTask name="engage bleeding-edge collaboration and idea-sharing" id="89da2b38-466d-4c48-86e8-2c775fec6673"/>
+    <manualTask name="incentivize progressive opportunities" id="c13e3d78-3d35-4c46-8a93-19111c75c87b"/>
+    <manualTask name="incubate intuitive systems" id="2fc439d0-da69-4622-a0d4-defb1aeb36e6"/>
+    <manualTask name="benchmark performance based outsourcing" id="3ca3a9d6-aaa3-4170-8f72-68ba87f1911c"/>
+    <parentsNode id="6313dd87-f5d8-4bed-9965-b555d8744dc9" sourceId="25362509-c861-47ef-b59b-1257ffde7f79" targetId="20ee2870-009a-48a5-a89e-b8f4b6edf290"/>
+    <parentsNode id="e5f2cc2a-52f2-43ac-b286-c9f7f8f352e0" sourceId="25362509-c861-47ef-b59b-1257ffde7f79" targetId="030eb19b-cdce-4b4c-a6b8-54cb201be3f2"/>
+    <parentsNode id="0a54af13-42b5-4254-9f7f-13a0f410f7b7" sourceId="25362509-c861-47ef-b59b-1257ffde7f79" targetId="3c6dda21-4b5b-4702-801f-c3092d6eaf3d"/>
+    <parentsNode id="072f3ddf-b5cc-47e3-8f37-0038b59f356c" sourceId="20ee2870-009a-48a5-a89e-b8f4b6edf290" targetId="d37bc1e5-ef6f-4cd8-bde9-a66bcdec54cc"/>
+    <parentsNode id="e223c3b9-3bf9-4cf7-b9ab-ae6ccfe476f8" sourceId="20ee2870-009a-48a5-a89e-b8f4b6edf290" targetId="fa1f56be-bba9-4b5b-b974-700f4a9d1c34"/>
+    <parentsNode id="afc1ae15-f558-4819-a9a8-ce26c147e370" sourceId="20ee2870-009a-48a5-a89e-b8f4b6edf290" targetId="8e3e772f-0ab2-4266-abb2-70e2de726723"/>
+    <parentsNode id="ee4b0858-be5f-413b-b8ec-8d3c2669e7be" sourceId="20ee2870-009a-48a5-a89e-b8f4b6edf290" targetId="d650be09-cf30-47e3-aca9-d71a4400edce"/>
+    <parentsNode id="9e673419-bdd6-4c09-a7da-d69bb4dca4e3" sourceId="030eb19b-cdce-4b4c-a6b8-54cb201be3f2" targetId="f2e53d21-191f-424d-9b47-0c62679d233f"/>
+    <parentsNode id="9996db1b-a751-4cb6-96ef-e161b3439d11" sourceId="030eb19b-cdce-4b4c-a6b8-54cb201be3f2" targetId="b4338f7a-69dd-4aab-8083-abf67b0c28d1"/>
+    <parentsNode id="7d38875d-0319-4e62-81a1-d982d930baca" sourceId="030eb19b-cdce-4b4c-a6b8-54cb201be3f2" targetId="dd2d995f-a0a1-4329-ab63-64022cb844a6"/>
+    <parentsNode id="ad23b0a9-d11c-47a2-8bb3-15a0469ab850" sourceId="030eb19b-cdce-4b4c-a6b8-54cb201be3f2" targetId="2df29d02-5119-49f0-926b-be7eb5220a4c"/>
+    <parentsNode id="e9841d7c-c1b0-4348-a433-8a24bd182226" sourceId="3c6dda21-4b5b-4702-801f-c3092d6eaf3d" targetId="89da2b38-466d-4c48-86e8-2c775fec6673"/>
+    <parentsNode id="0e5f9792-4c62-41a6-b0f2-5b5467cf7ed7" sourceId="3c6dda21-4b5b-4702-801f-c3092d6eaf3d" targetId="c13e3d78-3d35-4c46-8a93-19111c75c87b"/>
+    <parentsNode id="1c1129ac-0885-45b0-8955-820ad3bd6f42" sourceId="3c6dda21-4b5b-4702-801f-c3092d6eaf3d" targetId="2fc439d0-da69-4622-a0d4-defb1aeb36e6"/>
+    <parentsNode id="b8c391ac-74b2-4d6b-91f1-a8ff879e88e0" sourceId="3c6dda21-4b5b-4702-801f-c3092d6eaf3d" targetId="3ca3a9d6-aaa3-4170-8f72-68ba87f1911c"/>
+  </processTree>
+</ptml>

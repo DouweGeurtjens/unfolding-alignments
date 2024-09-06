@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="2f39173a-b74e-49ca-8fd9-b93ba9f7628a" root="6bfd0974-0d3e-4f3b-9382-7164d4255111" id="2a311391-e83f-4800-9cf9-a8d79db81acf">
+    <xor name="" id="6bfd0974-0d3e-4f3b-9382-7164d4255111"/>
+    <sequence name="" id="6a9e1a55-223e-40e2-b07d-b0e8635039e7"/>
+    <sequence name="" id="70a28e91-1def-48e2-b65f-7c112075e312"/>
+    <sequence name="" id="8bb61cab-6d6f-435e-a025-7a9fd6b38a98"/>
+    <sequence name="" id="6b8a62d2-06dc-479e-819e-d7e05a56a4ee"/>
+    <manualTask name="fabricate interdependent testing procedures" id="02ad620d-5353-4e04-9d44-4f9fd2b2378f"/>
+    <manualTask name="seize premier relationships" id="7caf6699-4a62-4849-8ce1-4e43045fca92"/>
+    <manualTask name="underwhelm resource-maximizing bandwidth" id="8eede70f-b4e5-41e5-bad7-999d82b335b2"/>
+    <manualTask name="expedite clicks-and-mortar virtualization" id="1c4496e9-c6ab-45eb-9a34-e525185b7987"/>
+    <manualTask name="exploit resource-sucking deliverables" id="07b69ff9-e4ff-417a-b59f-c90adb0f739d"/>
+    <manualTask name="customize end-to-end innovation" id="d9eea3ec-bef9-42bc-b71a-7a874abb759f"/>
+    <manualTask name="create interactive alignments" id="f2354c4d-3a45-45a4-9550-7915e3cc411d"/>
+    <manualTask name="whiteboard frictionless quality vectors" id="7638b7ec-54aa-421a-b852-b538b6093c29"/>
+    <manualTask name="pontificate client-centric infomediaries" id="471430c2-ea22-4cc1-8b2a-b0c1fb5c9fc1"/>
+    <manualTask name="repurpose plug-and-play e-markets" id="4968d788-f1c0-4869-a744-f6fe6ade5a98"/>
+    <manualTask name="customize market-driven adoption" id="6c3c5ca6-f3a8-4356-875e-fdeb4202ce09"/>
+    <manualTask name="aggregate collaborative e-services" id="c95a7b9b-ed0f-41ce-b44b-4db0e9c593cb"/>
+    <manualTask name="benchmark proactive communities" id="1e4345c2-9d7d-45c2-8420-f45159b86019"/>
+    <manualTask name="cultivate client-centered processes" id="63fc0c55-6aee-4380-bfee-976845e40c02"/>
+    <manualTask name="synergize quality sources" id="c1b2b148-9295-4842-b9b9-65a6495e0874"/>
+    <manualTask name="myocardinate resource-sucking partnerships" id="13412706-605e-4c38-a8df-ad799c8b608a"/>
+    <manualTask name="expedite low-risk high-yield content" id="6473d415-2178-4600-9972-0cd9e766b753"/>
+    <manualTask name="drive state of the art alignments" id="7be28c2c-b96e-447d-9a83-f3fa6c3d8617"/>
+    <manualTask name="deploy viral metrics" id="9243bae2-4065-4feb-9846-ad442105886d"/>
+    <manualTask name="synergize enterprise-wide quality vectors" id="09ebc435-6f76-4b0a-b94a-83df09466c22"/>
+    <parentsNode id="5998ec60-35b9-4582-89ef-800a7583c8de" sourceId="6bfd0974-0d3e-4f3b-9382-7164d4255111" targetId="6a9e1a55-223e-40e2-b07d-b0e8635039e7"/>
+    <parentsNode id="cffa5c5f-8b6d-4a43-b6db-d9bd1cad74ca" sourceId="6bfd0974-0d3e-4f3b-9382-7164d4255111" targetId="70a28e91-1def-48e2-b65f-7c112075e312"/>
+    <parentsNode id="5f3d3a61-9b70-4751-bb43-8b46e5d580c7" sourceId="6bfd0974-0d3e-4f3b-9382-7164d4255111" targetId="8bb61cab-6d6f-435e-a025-7a9fd6b38a98"/>
+    <parentsNode id="8dfc9f26-05da-48a4-97d7-81a5c5e0e3f4" sourceId="6bfd0974-0d3e-4f3b-9382-7164d4255111" targetId="6b8a62d2-06dc-479e-819e-d7e05a56a4ee"/>
+    <parentsNode id="fef84dd7-34cb-43a1-90fc-c53c54d26ef7" sourceId="6a9e1a55-223e-40e2-b07d-b0e8635039e7" targetId="02ad620d-5353-4e04-9d44-4f9fd2b2378f"/>
+    <parentsNode id="f711e96f-13b2-499f-9601-461d2a521f71" sourceId="6a9e1a55-223e-40e2-b07d-b0e8635039e7" targetId="7caf6699-4a62-4849-8ce1-4e43045fca92"/>
+    <parentsNode id="28067cbb-ef0b-4a7d-b9d8-c1c9a9e96208" sourceId="6a9e1a55-223e-40e2-b07d-b0e8635039e7" targetId="8eede70f-b4e5-41e5-bad7-999d82b335b2"/>
+    <parentsNode id="ede30c99-3b13-4005-a1eb-be6a55283e97" sourceId="6a9e1a55-223e-40e2-b07d-b0e8635039e7" targetId="1c4496e9-c6ab-45eb-9a34-e525185b7987"/>
+    <parentsNode id="1e113e56-4cd5-4d63-98e4-dcc7a2d47b37" sourceId="6a9e1a55-223e-40e2-b07d-b0e8635039e7" targetId="07b69ff9-e4ff-417a-b59f-c90adb0f739d"/>
+    <parentsNode id="2c935749-a7a3-4944-b41b-c2bd7ff797a4" sourceId="70a28e91-1def-48e2-b65f-7c112075e312" targetId="d9eea3ec-bef9-42bc-b71a-7a874abb759f"/>
+    <parentsNode id="b0cca4c1-4751-475a-8b8b-ecb29f708f67" sourceId="70a28e91-1def-48e2-b65f-7c112075e312" targetId="f2354c4d-3a45-45a4-9550-7915e3cc411d"/>
+    <parentsNode id="e20fc95b-86c2-4db9-8482-69c6ca230b52" sourceId="70a28e91-1def-48e2-b65f-7c112075e312" targetId="7638b7ec-54aa-421a-b852-b538b6093c29"/>
+    <parentsNode id="40035950-8b88-44b5-8ff6-cd6fe1aaec94" sourceId="70a28e91-1def-48e2-b65f-7c112075e312" targetId="471430c2-ea22-4cc1-8b2a-b0c1fb5c9fc1"/>
+    <parentsNode id="f173db1f-44cb-4c39-a1ac-3a306c71e9b0" sourceId="70a28e91-1def-48e2-b65f-7c112075e312" targetId="4968d788-f1c0-4869-a744-f6fe6ade5a98"/>
+    <parentsNode id="2c38e636-8108-4da3-9d21-c7be660ad86c" sourceId="8bb61cab-6d6f-435e-a025-7a9fd6b38a98" targetId="6c3c5ca6-f3a8-4356-875e-fdeb4202ce09"/>
+    <parentsNode id="2888dd46-9228-42bd-b060-9d79c1fd9ecf" sourceId="8bb61cab-6d6f-435e-a025-7a9fd6b38a98" targetId="c95a7b9b-ed0f-41ce-b44b-4db0e9c593cb"/>
+    <parentsNode id="907c2e6e-9a30-4913-bef3-1664ffffc5cd" sourceId="8bb61cab-6d6f-435e-a025-7a9fd6b38a98" targetId="1e4345c2-9d7d-45c2-8420-f45159b86019"/>
+    <parentsNode id="d995e57f-b6d0-487b-94f1-af9b81a46118" sourceId="8bb61cab-6d6f-435e-a025-7a9fd6b38a98" targetId="63fc0c55-6aee-4380-bfee-976845e40c02"/>
+    <parentsNode id="f4c960c4-9aa0-4de8-a882-3bee813b2257" sourceId="8bb61cab-6d6f-435e-a025-7a9fd6b38a98" targetId="c1b2b148-9295-4842-b9b9-65a6495e0874"/>
+    <parentsNode id="73f5ccb2-883b-4a6d-a350-c0c557163c48" sourceId="6b8a62d2-06dc-479e-819e-d7e05a56a4ee" targetId="13412706-605e-4c38-a8df-ad799c8b608a"/>
+    <parentsNode id="6e44e520-9186-4611-8297-ab3665076daf" sourceId="6b8a62d2-06dc-479e-819e-d7e05a56a4ee" targetId="6473d415-2178-4600-9972-0cd9e766b753"/>
+    <parentsNode id="e083ad35-9248-43ce-bb8f-9abc53cd70bc" sourceId="6b8a62d2-06dc-479e-819e-d7e05a56a4ee" targetId="7be28c2c-b96e-447d-9a83-f3fa6c3d8617"/>
+    <parentsNode id="3ab82267-93fa-4a41-a121-8c0148179612" sourceId="6b8a62d2-06dc-479e-819e-d7e05a56a4ee" targetId="9243bae2-4065-4feb-9846-ad442105886d"/>
+    <parentsNode id="75ddf1d4-422a-4eaa-a72c-efd35a407441" sourceId="6b8a62d2-06dc-479e-819e-d7e05a56a4ee" targetId="09ebc435-6f76-4b0a-b94a-83df09466c22"/>
+  </processTree>
+</ptml>

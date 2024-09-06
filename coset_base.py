@@ -8,14 +8,9 @@ import cProfile, pstats
 from collections import Counter, deque
 import heapq
 from operator import itemgetter
-# TODO fix imports
 from petrinet import *
 from itertools import product, combinations
 
-# TODO ALWAYS REMEMBER TO KEEP IN MIND THAT CONDITIONS/EVENTS ARE NOT DIRECTLY COMPARABLE TO PLACES/TRANSITIONS
-# TODO THIS MEANS THAT SET OPERATIONS WILL ONLY WORK BETWEEN THE SAME TYPE, SO NO conditions.intersection.places
-
-# TODO there is some issue with the synchronous product and invisible transitions
 # TODO set unions take a lot of time, perhaps it's possible (in some cases) to use a linked list for faster extension?
 PlaceID: TypeAlias = int
 TransitionID: TypeAlias = int
@@ -55,8 +50,6 @@ class Event:
         self.net_transition_id = net_transition_id
 
         # Bookkeep the local configuration and it's cost to increase performance
-        # TODO local configuration does not include the event in the nodes, but the cost does include the cost of the event
-        # TODO is that correct?
         self.local_configuration = local_configuration
         self.local_configuration_cost = local_configuration_cost
         self.id = IDGEN.generate_id()
@@ -103,7 +96,6 @@ class PriorityQueue:
         return ret
 
     def push(self, item: AStarItem):
-        # TODO also update items that are already in the pq
         heapq.heappush(self.pq, item)
         self.in_pq.add(item.pe)
         self._queued += 1
@@ -117,10 +109,6 @@ class Configuration:
 
     def __init__(self) -> None:
         self.nodes: set[Condition | Event] = set()
-
-    # TODO unsure about this
-    # def __eq__(self, other: object) -> bool:
-    #     return super().__eq__(other)
 
 
 # A possible extension to a branching process
@@ -158,7 +146,6 @@ class BranchingProcess:
         # We track conditions by their place ID
         self.conditions: dict[PlaceID, set[Condition]] = {}
 
-        # TODO optimize this
         # We track which extensions we have seen as a tuple (net transition ID, set of conditions)
         self.extensions_seen: set[tuple[TransitionID,
                                         frozenset[Condition]]] = set()
@@ -222,14 +209,11 @@ class BranchingProcess:
                         condition.net_place_id)))
 
         new_possible_extensions = self.compute_pe(transition_ids_to_check)
-        # TODO make proper cost function
+
         new_possible_extensions_with_cost = [
             self.pe_to_astar_search(x) for x in new_possible_extensions
         ]
         self.possible_extensions.push_many(new_possible_extensions_with_cost)
-        # Update the seen extensions
-        # TODO check if this makes any sense
-        # self.extensions_seen.update((new_possible_extensions))
 
     def fire_configuration(self, configuration: Configuration):
         presets = Counter()
@@ -253,8 +237,6 @@ class BranchingProcess:
         local_configuration_marking = frozenset(
             self.fire_configuration(event.local_configuration).items())
 
-        # TODO this is slow, how do we optimize?
-        # TODO use a dict of marking -> [event] so we can look up by marking?
         if local_configuration_marking not in self.events:
             return False
 
@@ -273,24 +255,6 @@ class BranchingProcess:
                         node.net_transition_id)]
         return configuration_cost
 
-    # Just some pseudocode
-    # We start with a configuration with the IM
-    # Pop a configuration from the heapq
-    # Check all enabled transitions
-    # Check which transitions are mutually exclusive
-    #   For each of these, create a configuration - transition pair
-    #   The mutually exclusive transition can now be removed from the enabled transition list
-    #       This is because these transitions can exist only in this specific configuration
-    # For all configuration - transition pairs, add the remaining enabled transitions (these are concurrently enabled regardless of chosen mutually exclusive transition)
-    # Remove all pairs where no transitions are enabled
-    #   This can happen when there are only mutually exclusive transitions enabled
-    # Also, remove all pairs that are already in the closed list (we've seen this marking + enabled transitions before)
-    # From the remaining pairs, get the configuration with the lowest expected cost to reach the final marking (heuristic)
-    # Fire this transition, add the result into the heapq with the updated cost after firing
-    # The rest of the configurations are added to the heapq with the cost of the popped configuration (we didn't fire them so their cost didn't change)
-    #   Only do this if it's not already on the heapq
-    #   TODO see todo for simplification
-    # When a configuration reaches the FM, it's done and we found the least-cost unfolding
     def pe_to_astar_search(self, pe: PossibleExtension):
         # NOTE the configuration does not yet include the possible extension
         configuration_cost = self.get_configuration_cost(
@@ -373,7 +337,6 @@ class BranchingProcess:
         new_event.local_configuration.nodes.add(new_event)
 
         # Fire the local configuration so we can store it keyed by marking
-        # TODO bookkeep this maybe?
         net_marking = frozenset(
             self.fire_configuration(new_event.local_configuration).items())
 
@@ -394,7 +357,6 @@ class BranchingProcess:
 
         return new_event, added_conditions
 
-    # TODO move this to configuration class?
     def get_full_configuration_from_marking(
             self, marking: set[Condition]) -> Configuration:
         configuration = Configuration()
@@ -441,9 +403,15 @@ class BranchingProcess:
                                                      net_transition.label)
 
                 for input_condition in node.input_conditions:
-                    new_place = PetriNet.Place(input_condition.id)
-                    ret.places.add(new_place)
-                    add_arc_from_to(new_place, new_transition, ret)
+                    source = None
+                    for p in ret.places:
+                        if p.name == input_condition.id:
+                            source = p
+                    if not source:
+                        source = PetriNet.Place(input_condition.id)
+
+                    ret.places.add(source)
+                    add_arc_from_to(source, new_transition, ret)
 
                 ret.transitions.add(new_transition)
 
@@ -455,9 +423,15 @@ class BranchingProcess:
                     for p in ret.places:
                         if p.name == node.id:
                             target = p
+
+                    if not target:
+                        target = PetriNet.Place(node.id)
+                        ret.places.add(target)
+
                     for t in ret.transitions:
                         if t.name == node.input_event.id:
                             source = t
+
                     if target and source:
                         add_arc_from_to(source, target, ret)
 

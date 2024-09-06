@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="308ad334-753a-4505-878f-6b524dc7ae34" root="08bfaa34-e9e7-486c-8287-686753cbe853" id="ea9cbdb1-c12a-4ad0-bce2-30e520fcb6a9">
+    <and name="" id="08bfaa34-e9e7-486c-8287-686753cbe853"/>
+    <sequence name="" id="0b646086-0c10-43eb-814f-3ce1d1d2a49a"/>
+    <sequence name="" id="04869b38-1a22-40ac-9259-d99d2e10446b"/>
+    <manualTask name="drive collaborative value" id="27b5008b-61d1-4241-b7c0-a066fc574acb"/>
+    <manualTask name="engineer market positioning channels" id="3b646acf-47df-4491-b266-a872ab0c1bbf"/>
+    <parentsNode id="8ef7eab8-02b5-4d7e-9e3b-79dbc0dbf09e" sourceId="08bfaa34-e9e7-486c-8287-686753cbe853" targetId="0b646086-0c10-43eb-814f-3ce1d1d2a49a"/>
+    <parentsNode id="87d70a6b-daba-4b19-8b9e-f19f5c213064" sourceId="08bfaa34-e9e7-486c-8287-686753cbe853" targetId="04869b38-1a22-40ac-9259-d99d2e10446b"/>
+    <parentsNode id="69193982-1b0f-48d8-91a1-45e9541007c1" sourceId="0b646086-0c10-43eb-814f-3ce1d1d2a49a" targetId="27b5008b-61d1-4241-b7c0-a066fc574acb"/>
+    <parentsNode id="980bb405-8cc6-4b88-ad2e-9eeab2fbe73d" sourceId="04869b38-1a22-40ac-9259-d99d2e10446b" targetId="3b646acf-47df-4491-b266-a872ab0c1bbf"/>
+  </processTree>
+</ptml>

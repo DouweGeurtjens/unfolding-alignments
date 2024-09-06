@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="37f4f72d-8a57-4b2c-89b8-de620340ddcb" root="d692008f-5410-4b2f-af70-e5ebb8395898" id="14d9bfe3-ffaf-40fe-bfe5-50df00301bfa">
+    <and name="" id="d692008f-5410-4b2f-af70-e5ebb8395898"/>
+    <sequence name="" id="a2d4b2c9-1365-496a-bc4c-17c0f315ebe4"/>
+    <sequence name="" id="6095da37-be8e-4e0d-a346-5f44e2f1ca57"/>
+    <sequence name="" id="c8f3fa38-5fe4-439f-ac60-c3e9df559ea8"/>
+    <manualTask name="implement unique wins" id="ade4b431-1c2b-4f39-bb81-6cb1784f1866"/>
+    <manualTask name="simplify virtual applications" id="62f1f364-3f66-4536-82c3-d4295f6ebffd"/>
+    <manualTask name="syndicate client-centric e-business" id="b7eaa93e-2fab-4e68-ba79-99f2e45adf39"/>
+    <parentsNode id="e5d72451-ea05-4b87-8554-d32dda893b3f" sourceId="d692008f-5410-4b2f-af70-e5ebb8395898" targetId="a2d4b2c9-1365-496a-bc4c-17c0f315ebe4"/>
+    <parentsNode id="efe85a05-769c-443d-8ce1-70ef6e5084ca" sourceId="d692008f-5410-4b2f-af70-e5ebb8395898" targetId="6095da37-be8e-4e0d-a346-5f44e2f1ca57"/>
+    <parentsNode id="d00083a4-9f95-4c8b-8aaa-c47d0891e050" sourceId="d692008f-5410-4b2f-af70-e5ebb8395898" targetId="c8f3fa38-5fe4-439f-ac60-c3e9df559ea8"/>
+    <parentsNode id="80167b1b-51e9-4d69-8350-f4bcabd0198e" sourceId="a2d4b2c9-1365-496a-bc4c-17c0f315ebe4" targetId="ade4b431-1c2b-4f39-bb81-6cb1784f1866"/>
+    <parentsNode id="ca245c98-1967-4d9f-b6bb-afdaa41212a5" sourceId="6095da37-be8e-4e0d-a346-5f44e2f1ca57" targetId="62f1f364-3f66-4536-82c3-d4295f6ebffd"/>
+    <parentsNode id="a701486e-b643-4ff4-b5d2-82d01a647dcd" sourceId="c8f3fa38-5fe4-439f-ac60-c3e9df559ea8" targetId="b7eaa93e-2fab-4e68-ba79-99f2e45adf39"/>
+  </processTree>
+</ptml>

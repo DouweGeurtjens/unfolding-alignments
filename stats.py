@@ -19,6 +19,7 @@ import sklearn
 import pandas as pd
 from scipy import stats
 import numpy as np
+import statistics
 
 from sklearn.base import BaseEstimator, RegressorMixin
 
@@ -400,7 +401,7 @@ def plot_basic(b=None, d=None):
     plt.show()
 
 
-def preliminary(filepath):
+def e1(filepath):
     xes_df = pm4py.read_xes("data/sepsis/Sepsis Cases - Event Log.xes")
     model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(xes_df)
     xes_el = pm4py.convert_to_event_log(pm4py.format_dataframe(xes_df))
@@ -483,15 +484,24 @@ def preliminary(filepath):
     unf_v = [x["unf_v"] for x in res]
     unf_cost = [x["unf_cost"] for x in res]
 
+    unf_df = pd.DataFrame(unf_elapsed_time)
+    print(unf_df.describe())
+
     dijkstra_elapsed_time = [x["dijkstra_elapsed_time"] for x in res]
     dijkstra_q = [x["dijkstra_q"] for x in res]
     dijkstra_v = [x["dijkstra_v"] for x in res]
     dijkstra_cost = [x["dijkstra_cost"] for x in res]
 
+    dijkstra_df = pd.DataFrame(dijkstra_elapsed_time)
+    print(dijkstra_df.describe())
+
     astar_elapsed_time = [x["astar_elapsed_time"] for x in res]
     astar_q = [x["astar_q"] for x in res]
     astar_v = [x["astar_v"] for x in res]
     astar_cost = [x["astar_cost"] for x in res]
+
+    astar_df = pd.DataFrame(astar_elapsed_time)
+    print(astar_df.describe())
 
     unf_time_box.boxplot(unf_elapsed_time, showfliers=False)
     unf_time_fliers.boxplot(unf_elapsed_time,
@@ -554,7 +564,7 @@ def plot_3d(x, y, z, title):
     return fig, ax
 
 
-def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
+def e2_figures(dir_names_color_title_pairs, subfolder_name):
     breadth = "breadth"
     depth = "depth"
     v = "visited states"
@@ -680,9 +690,8 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                 avg_t_no_deviations = sum(t_no_deviations) / len(
                     t_no_deviations)
 
-                ax_vt_no_deviations.scatter(avg_v_no_deviations,
-                                            avg_t_no_deviations,
-                                            c=color)
+                l_vt_no_deviations = ax_vt_no_deviations.scatter(
+                    avg_v_no_deviations, avg_t_no_deviations, c=color)
 
                 ax_v_no_deviations.scatter(params.breadth,
                                            params.depth,
@@ -692,12 +701,10 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                                            params.depth,
                                            avg_t_no_deviations,
                                            c=color)
-                ax_tl_v_no_deviations.scatter(avg_trace_length,
-                                              avg_v_no_deviations,
-                                              c=color)
-                ax_sp_v_no_deviations.scatter(sync_prod_size_no_deviation,
-                                              avg_v_no_deviations,
-                                              c=color)
+                l_tl_v_no_deviations = ax_tl_v_no_deviations.scatter(
+                    avg_trace_length, avg_v_no_deviations, c=color)
+                l_sp_v_no_deviations = ax_sp_v_no_deviations.scatter(
+                    sync_prod_size_no_deviation, avg_v_no_deviations, c=color)
             except ZeroDivisionError:
                 pass
 
@@ -707,9 +714,8 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                 avg_t_start_deviations = sum(t_start_deviations) / len(
                     t_start_deviations)
 
-                ax_vt_start_deviations.scatter(avg_v_start_deviations,
-                                               avg_t_start_deviations,
-                                               c=color)
+                l_vt_start_deviations = ax_vt_start_deviations.scatter(
+                    avg_v_start_deviations, avg_t_start_deviations, c=color)
 
                 ax_v_start_deviations.scatter(params.breadth,
                                               params.depth,
@@ -719,12 +725,12 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                                               params.depth,
                                               avg_t_start_deviations,
                                               c=color)
-                ax_tl_v_start_deviations.scatter(avg_trace_length,
-                                                 avg_v_start_deviations,
-                                                 c=color)
-                ax_sp_v_start_deviations.scatter(sync_prod_size_with_deviation,
-                                                 avg_v_start_deviations,
-                                                 c=color)
+                l_tl_v_start_deviations = ax_tl_v_start_deviations.scatter(
+                    avg_trace_length, avg_v_start_deviations, c=color)
+                l_sp_v_start_deviations = ax_sp_v_start_deviations.scatter(
+                    sync_prod_size_with_deviation,
+                    avg_v_start_deviations,
+                    c=color)
             except ZeroDivisionError:
                 pass
 
@@ -734,9 +740,10 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                 avg_t_halfway_deviations = sum(t_halfway_deviations) / len(
                     t_halfway_deviations)
 
-                ax_vt_halfway_deviations.scatter(avg_v_halfway_deviations,
-                                                 avg_t_halfway_deviations,
-                                                 c=color)
+                l_vt_halfway_deviations = ax_vt_halfway_deviations.scatter(
+                    avg_v_halfway_deviations,
+                    avg_t_halfway_deviations,
+                    c=color)
 
                 ax_v_halfway_deviations.scatter(params.breadth,
                                                 params.depth,
@@ -746,10 +753,9 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                                                 params.depth,
                                                 avg_t_halfway_deviations,
                                                 c=color)
-                ax_tl_v_halfway_deviations.scatter(avg_trace_length,
-                                                   avg_v_halfway_deviations,
-                                                   c=color)
-                ax_sp_v_halfway_deviations.scatter(
+                l_tl_v_halfway_deviations = ax_tl_v_halfway_deviations.scatter(
+                    avg_trace_length, avg_v_halfway_deviations, c=color)
+                l_sp_v_halfway_deviations = ax_sp_v_halfway_deviations.scatter(
                     sync_prod_size_with_deviation,
                     avg_v_halfway_deviations,
                     c=color)
@@ -762,9 +768,8 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                 avg_t_end_deviations = sum(t_end_deviations) / len(
                     t_end_deviations)
 
-                ax_vt_end_deviations.scatter(avg_v_end_deviations,
-                                             avg_t_end_deviations,
-                                             c=color)
+                l_vt_end_deviations = ax_vt_end_deviations.scatter(
+                    avg_v_end_deviations, avg_t_end_deviations, c=color)
 
                 ax_v_end_deviations.scatter(params.breadth,
                                             params.depth,
@@ -774,36 +779,72 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
                                             params.depth,
                                             avg_t_end_deviations,
                                             c=color)
-                ax_tl_v_end_deviations.scatter(avg_trace_length,
-                                               avg_v_end_deviations,
-                                               c=color)
-                ax_sp_v_end_deviations.scatter(sync_prod_size_with_deviation,
-                                               avg_v_end_deviations,
-                                               c=color)
+                l_tl_v_end_deviations = ax_tl_v_end_deviations.scatter(
+                    avg_trace_length, avg_v_end_deviations, c=color)
+                l_sp_v_end_deviations = ax_sp_v_end_deviations.scatter(
+                    sync_prod_size_with_deviation,
+                    avg_v_end_deviations,
+                    c=color)
             except ZeroDivisionError:
                 pass
-        # fig_v_no.savefig(f"figures/stage_one/{subfolder_name}/{title}_3d_v_no")
-        # fig_t_no.savefig(f"figures/stage_one/{subfolder_name}/{title}_3d_t_no")
-        # fig_v_start.savefig(
-        #     f"figures/stage_one/{subfolder_name}/{title}_3d_v_start")
-        # fig_t_start.savefig(
-        #     f"figures/stage_one/{subfolder_name}/{title}_3d_t_start")
-        # fig_v_halfway.savefig(
-        #     f"figures/stage_one/{subfolder_name}/{title}_3d_v_halfway")
-        # fig_t_halfway.savefig(
-        #     f"figures/stage_one/{subfolder_name}/{title}_3d_t_halfway")
-        # fig_v_end.savefig(
-        #     f"figures/stage_one/{subfolder_name}/{title}_3d_v_end")
-        # fig_t_end.savefig(
-        #     f"figures/stage_one/{subfolder_name}/{title}_3d_t_end")
 
-    # fig_vt_no_deviations.savefig(f"figures/stage_one/{subfolder_name}/v_t_no")
-    # fig_vt_start_deviations.savefig(
-    #     f"figures/stage_one/{subfolder_name}/v_t_start")
-    # fig_vt_halfway_deviations.savefig(
-    #     f"figures/stage_one/{subfolder_name}/v_t_halfway")
-    # fig_vt_end_deviations.savefig(
-    #     f"figures/stage_one/{subfolder_name}/v_t_end")
+        l_vt_no_deviations.set_label(title)
+        l_vt_start_deviations.set_label(title)
+        l_vt_halfway_deviations.set_label(title)
+        l_vt_end_deviations.set_label(title)
+        l_tl_v_no_deviations.set_label(title)
+        l_tl_v_start_deviations.set_label(title)
+        l_tl_v_halfway_deviations.set_label(title)
+        l_tl_v_end_deviations.set_label(title)
+        l_sp_v_no_deviations.set_label(title)
+        l_sp_v_start_deviations.set_label(title)
+        l_sp_v_halfway_deviations.set_label(title)
+        l_vt_start_deviations.set_label(title)
+        l_vt_halfway_deviations.set_label(title)
+        l_vt_end_deviations.set_label(title)
+        l_tl_v_no_deviations.set_label(title)
+        l_tl_v_start_deviations.set_label(title)
+        l_tl_v_halfway_deviations.set_label(title)
+        l_tl_v_end_deviations.set_label(title)
+        l_sp_v_no_deviations.set_label(title)
+        l_sp_v_start_deviations.set_label(title)
+        l_sp_v_halfway_deviations.set_label(title)
+        l_sp_v_end_deviations.set_label(title)
+        fig_v_no.savefig(f"figures/stage_one/{subfolder_name}/{title}_3d_v_no")
+        fig_t_no.savefig(f"figures/stage_one/{subfolder_name}/{title}_3d_t_no")
+        fig_v_start.savefig(
+            f"figures/stage_one/{subfolder_name}/{title}_3d_v_start")
+        fig_t_start.savefig(
+            f"figures/stage_one/{subfolder_name}/{title}_3d_t_start")
+        fig_v_halfway.savefig(
+            f"figures/stage_one/{subfolder_name}/{title}_3d_v_halfway")
+        fig_t_halfway.savefig(
+            f"figures/stage_one/{subfolder_name}/{title}_3d_t_halfway")
+        fig_v_end.savefig(
+            f"figures/stage_one/{subfolder_name}/{title}_3d_v_end")
+        fig_t_end.savefig(
+            f"figures/stage_one/{subfolder_name}/{title}_3d_t_end")
+
+    fig_vt_no_deviations.legend()
+    fig_vt_start_deviations.legend()
+    fig_vt_halfway_deviations.legend()
+    fig_vt_end_deviations.legend()
+    fig_tl_v_no_deviations.legend()
+    fig_tl_v_start_deviations.legend()
+    fig_tl_v_halfway_deviations.legend()
+    fig_tl_v_end_deviations.legend()
+    fig_sp_v_no_deviations.legend()
+    fig_sp_v_start_deviations.legend()
+    fig_sp_v_halfway_deviations.legend()
+    fig_sp_v_end_deviations.legend()
+
+    fig_vt_no_deviations.savefig(f"figures/stage_one/{subfolder_name}/v_t_no")
+    fig_vt_start_deviations.savefig(
+        f"figures/stage_one/{subfolder_name}/v_t_start")
+    fig_vt_halfway_deviations.savefig(
+        f"figures/stage_one/{subfolder_name}/v_t_halfway")
+    fig_vt_end_deviations.savefig(
+        f"figures/stage_one/{subfolder_name}/v_t_end")
 
     fig_tl_v_no_deviations.savefig(
         f"figures/stage_one/{subfolder_name}/tl_v_no")
@@ -825,7 +866,7 @@ def stage_one_figures(dir_names_color_title_pairs, subfolder_name):
     # plt.show()
 
 
-def stage_two_figures():
+def e3_figures():
     res_file_path_color_title_pairs = [
         ("results/sepsis/sepsis_05.json", "#2f4f4f", "SP"),
         ("results/bpic17/bpic17_02.json", "#2e8b57", "BPIC17"),
@@ -883,6 +924,10 @@ def stage_two_figures():
         fig_astar_t_bar, ax_astar_t_bar = plot_2d(t, c, f"{title} {astar}")
         fig_dijkstra_t_bar, ax_dijkstra_t_bar = plot_2d(
             t, c, f"{title} {dijkstra}")
+
+        fig_unf_v_t_per, ax_unf_v_t_per = plot_2d(v, t, f"{title} {unf}")
+        fig_unf_sp_v_per, ax_unf_sp_v_per = plot_2d(sp, v, f"{title} {unf}")
+        fig_unf_sp_t_per, ax_unf_sp_t_per = plot_2d(sp, t, f"{title} {unf}")
 
         unf_elapsed_time_negative = []
         unf_elapsed_time = []
@@ -953,6 +998,20 @@ def stage_two_figures():
                                  unf_elapsed_time_log,
                                  c=color,
                                  label=title)
+
+        ax_unf_v_t_per.scatter(unf_v, unf_elapsed_time, c=color, label=title)
+        ax_unf_sp_v_per.scatter(sync_net_transitions,
+                                unf_v,
+                                c=color,
+                                label=title)
+        ax_unf_sp_t_per.scatter(sync_net_transitions,
+                                unf_elapsed_time,
+                                c=color,
+                                label=title)
+        fig_unf_v_t_per.savefig(f"figures/stage_two/{title}_{unf}_v_t")
+        fig_unf_sp_v_per.savefig(f"figures/stage_two/{title}_{unf}_sp_v")
+        fig_unf_sp_t_per.savefig(f"figures/stage_two/{title}_{unf}_sp_t")
+
     fig_unf_v_t.legend()
     fig_unf_q_t.legend()
     fig_unf_tl_v.legend()
@@ -977,7 +1036,7 @@ def stage_two_figures():
     # plt.show()
 
 
-def stage_two_table():
+def e3_table():
     res_file_path_title_pairs = [
         ("results/sepsis/sepsis_05.json", "SP"),
         ("results/bpic17/bpic17_02.json", "BPIC17"),
@@ -988,7 +1047,7 @@ def stage_two_table():
         ("results/inthelarge/prDm6.json", "ITL prDm6"),
         ("results/inthelarge/prEm6.json", "ITL prEm6"),
         ("results/inthelarge/prFm6.json", "ITL prFm6"),
-        ("results/inthelarge/prGm6.json", "ITL prGm6"),
+        # ("results/inthelarge/prGm6.json", "ITL prGm6"),
         ("results/hospital_billing/hospital_billing_02.json", "HB"),
         ("results/bpic12/bpic12_02.json", "BPIC12"),
         ("results/bpic13/bpic13_02.json", "BPIC13"),
@@ -1000,6 +1059,7 @@ def stage_two_table():
         ("results/hospital_billing/hospital_billing_split.json", "HB_SPLIT"),
         ("results/traffic/traffic_split.json", "TR_SPLIT"),
     ]
+    means_median_pairs = []
     for res_file_path, title in res_file_path_title_pairs:
         with open(res_file_path) as rf:
             contents = json.load(rf)
@@ -1078,6 +1138,9 @@ def stage_two_table():
                 v_dijkstra_unf_dijkstra_complete.append(entry["dijkstra_v"])
                 t_dijkstra_unf_dijkstra_complete.append(
                     entry["dijkstra_elapsed_time"])
+
+        means_median_pairs.append(
+            ((sum(unf_t) / len(unf_t)), statistics.median(unf_t)))
         # Unf
         if len(unf_t) > 0:
             unf_table["samples"] = len(unf_q)
@@ -1212,9 +1275,12 @@ def stage_two_table():
         print(dijkstra_table)
         print(unf_astar_table)
         print(unf_dijkstra_table)
+    print(means_median_pairs)
+    # mean_median_diffs = [((x[1] - x[0]) / x[0]) for x in means_median_pairs]
+    # print(mean_median_diffs)
 
 
-def stage_three_table():
+def e4_table():
     res_file_path_title_pairs = [
         ("results/sepsis/sepsis_05.json",
          "results/streaming/sepsis/sepsis_05.json", "SP"),
@@ -1236,6 +1302,27 @@ def stage_three_table():
          "results/streaming/inthelarge/prFm6.json", "ITL prFm6"),
         # ("results/inthelarge/prGm6.json",
         #  "results/streaming/inthelarge/prGm6.json", "ITL prGm6"),
+        ("results/hospital_billing/hospital_billing_02.json",
+         "results/streaming/hospital_billing/hospital_billing_02.json", "HB"),
+        ("results/bpic12/bpic12_02.json",
+         "results/streaming/bpic12/bpic12_02.json", "BPIC12"),
+        ("results/bpic13/bpic13_02.json",
+         "results/streaming/bpic13/bpic13_02.json", "BPIC13"),
+        ("results/traffic/traffic_02.json",
+         "results/streaming/traffic/traffic_02.json", "TR"),
+        ("results/bpic13/bpic13_split.json",
+         "results/streaming/bpic13/bpic13_split.json", "BPIC13_SPLIT"),
+        ("results/sepsis/sepsis_split.json",
+         "results/streaming/sepsis/sepsis_split.json", "SP_SPLIT"),
+        ("results/bpic12/bpic12_split.json",
+         "results/streaming/bpic12/bpic12_split.json", "BPIC12_SPLIT"),
+        ("results/bpic17/bpic17_split.json",
+         "results/streaming/bpic17/bpic17_split.json", "BPIC17_SPLIT"),
+        ("results/hospital_billing/hospital_billing_split.json",
+         "results/streaming/hospital_billing/hospital_billing_split.json",
+         "HB_SPLIT"),
+        ("results/traffic/traffic_split.json",
+         "results/streaming/traffic/traffic_split.json", "TR_SPLIT"),
     ]
     for res_file_path_offline, res_file_path_online, title in res_file_path_title_pairs:
         with open(res_file_path_offline) as rf:
@@ -1271,22 +1358,22 @@ def stage_three_table():
                     q_on_complete.append(entry_on["unf_q"])
                     v_on_complete.append(entry_on["unf_v"])
                     t_on_complete.append(entry_on["unf_elapsed_time"])
-        # Online
-        if len(on_t) > 0:
-            print(f"{title} samples: {len(on_t)}")
-            print(
-                f"on q {title}, {sum(on_q)/len(on_q)}, {min(on_q)}, {max(on_q)}"
-            )
-            print(
-                f"on v {title}, {sum(on_v)/len(on_v)}, {min(on_v)}, {max(on_v)}"
-            )
-            print(
-                f"on t {title}, {sum(on_t)/len(on_t)}, {min(on_t)}, {max(on_t)}"
-            )
+        # # Online
+        # if len(on_t) > 0:
+        #     print(f"online {title} samples: {len(on_t)}")
+        #     print(
+        #         f"on q {title}, {sum(on_q)/len(on_q)}, {min(on_q)}, {max(on_q)}"
+        #     )
+        #     print(
+        #         f"on v {title}, {sum(on_v)/len(on_v)}, {min(on_v)}, {max(on_v)}"
+        #     )
+        #     print(
+        #         f"on t {title}, {sum(on_t)/len(on_t)}, {min(on_t)}, {max(on_t)}"
+        #     )
 
-        # Unf Astar both finished
+        # Both finished
         if len(t_on_complete) > 0:
-            print(f"{title} samples: {len(q_off_complete)}")
+            print(f"both {title} samples: {len(q_off_complete)}")
             print(
                 f"off q {title}, {sum(q_off_complete)/len(q_off_complete)}, {min(q_off_complete)}, {max(q_off_complete)}"
             )
@@ -1502,33 +1589,35 @@ def view_models():
 
 def test_plot():
     dir_pairs = [
-        ("results/sepsis/sepsis_05.json",
-         "data/sepsis/Sepsis Cases - Event Log.xes", 1.2307692307692308,
-         1.391304347826087),
-        ("results/bpic17/bpic17_02.json", "data/bpic17/BPI Challenge 2017.xes",
-         1.0555555555555556, 1.6521739130434783),
-        ("results/bpic19/bpic19_02.json", "data/bpic19/BPI_Challenge_2019.xes",
-         1.1123595505617978, 1.8679245283018868),
-        ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn",
-         1.159779614325069, 1.2132564841498559),
-        ("results/inthelarge/prBm6.json", "data/inthelarge/prBm6.tpn",
-         1.1798107255520505, 1.1798107255520505),
-        ("results/inthelarge/prCm6.json", "data/inthelarge/prCm6.tpn",
-         1.1798107255520505, 1.1798107255520505),
-        ("results/inthelarge/prDm6.json", "data/inthelarge/prDm6.tpn",
-         1.324009324009324, 1.0737240075614367),
-        ("results/inthelarge/prEm6.json", "data/inthelarge/prEm6.tpn",
-         1.1781818181818182, 1.1696750902527075),
-        ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn",
-         1.2842809364548495, 1.0607734806629834),
-        ("results/hospital_billing/hospital_billing_02.json",
-         "data/hospital_billing/Hospital Billing - Event Log.xes",
-         1.0178571428571428, 1.78125),
-        ("results/bpic12/bpic12_02.json", "data/bpic12/BPI_Challenge_2012.xes",
-         1.09375, 1.7073170731707317),
-        ("results/bpic13/bpic13_02.json",
-         "data/bpic13/BPI_Challenge_2013_incidents.xes", 1.0833333333333333,
-         1.3)
+        # ("results/sepsis/sepsis_05.json",
+        #  "data/sepsis/Sepsis Cases - Event Log.xes", 1.2307692307692308,
+        #  1.391304347826087),
+        # ("results/bpic17/bpic17_02.json", "data/bpic17/BPI Challenge 2017.xes",
+        #  1.0555555555555556, 1.6521739130434783),
+        # ("results/bpic19/bpic19_02.json", "data/bpic19/BPI_Challenge_2019.xes",
+        #  1.1123595505617978, 1.8679245283018868),
+        # ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn",
+        #  1.159779614325069, 1.2132564841498559),
+        # ("results/inthelarge/prBm6.json", "data/inthelarge/prBm6.tpn",
+        #  1.1798107255520505, 1.1798107255520505),
+        # ("results/inthelarge/prCm6.json", "data/inthelarge/prCm6.tpn",
+        #  1.1798107255520505, 1.1798107255520505),
+        # ("results/inthelarge/prDm6.json", "data/inthelarge/prDm6.tpn",
+        #  1.324009324009324, 1.0737240075614367),
+        # ("results/inthelarge/prEm6.json", "data/inthelarge/prEm6.tpn",
+        #  1.1781818181818182, 1.1696750902527075),
+        # ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn",
+        #  1.2842809364548495, 1.0607734806629834),
+        # ("results/hospital_billing/hospital_billing_02.json",
+        #  "data/hospital_billing/Hospital Billing - Event Log.xes",
+        #  1.0178571428571428, 1.78125),
+        # ("results/bpic12/bpic12_02.json", "data/bpic12/BPI_Challenge_2012.xes",
+        #  1.09375, 1.7073170731707317),
+        # ("results/bpic13/bpic13_02.json",
+        #  "data/bpic13/BPI_Challenge_2013_incidents.xes", 1.0833333333333333,
+        #  1.3),
+        ("results/traffic/traffic_02.json",
+         "data/traffic/Road_Traffic_Fine_Management_Process.xes", 0, 0)
     ]
     colorss = [
         "red", "green", "blue", "pink", "purple", "magenta", "turquoise",
@@ -1563,20 +1652,20 @@ def test_plot():
     #             max_tl = t["trace_length"]
 
     for res_file, model_file, exc_factor, conc_factor in dir_pairs:
-        # if model_file.endswith(".tpn"):
-        #     model_net, model_im, model_fm = ptn.import_from_tpn(model_file)
-        # else:
-        #     xes_df = pm4py.read_xes(model_file)
-        #     noise_threshold = 0.5 if "sepsis" in model_file else 0.2
-        #     model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(
-        #         xes_df, noise_threshold=noise_threshold)
-        #     # pm4py.view_petri_net(model_net, model_im, model_fm)
-        # avg_t_outgoing_arc = sum(
-        #     [len(t.out_arcs)
-        #      for t in model_net.transitions]) / len(model_net.transitions)
-        # avg_p_outgoing_arc = sum([len(p.out_arcs) for p in model_net.places
-        #                           ]) / len(model_net.places)
-        # print(f"{model_file}, {avg_t_outgoing_arc}, {avg_p_outgoing_arc}")
+        if model_file.endswith(".tpn"):
+            model_net, model_im, model_fm = ptn.import_from_tpn(model_file)
+        else:
+            xes_df = pm4py.read_xes(model_file)
+            noise_threshold = 0.5 if "sepsis" in model_file else 0.2
+            model_net, model_im, model_fm = pm4py.discover_petri_net_inductive(
+                xes_df, noise_threshold=noise_threshold)
+            # pm4py.view_petri_net(model_net, model_im, model_fm)
+        avg_t_outgoing_arc = sum(
+            [len(t.out_arcs)
+             for t in model_net.transitions]) / len(model_net.transitions)
+        avg_p_outgoing_arc = sum([len(p.out_arcs) for p in model_net.places
+                                  ]) / len(model_net.places)
+        print(f"{model_file}, {avg_t_outgoing_arc}, {avg_p_outgoing_arc}")
         subsize = []
         subx = []
         suby = []
@@ -1625,37 +1714,41 @@ def test_plot():
 
 def regress_a_priori():
     dir_pairs = [
-        ("results/sepsis/sepsis_05.json",
-         "data/sepsis/Sepsis Cases - Event Log.xes", 1.2307692307692308,
+        ("results/sepsis/sepsis_05.json", 1.2307692307692308,
          1.391304347826087),
-        ("results/bpic17/bpic17_02.json", "data/bpic17/BPI Challenge 2017.xes",
-         1.0555555555555556, 1.6521739130434783),
-        ("results/bpic19/bpic19_02.json", "data/bpic19/BPI_Challenge_2019.xes",
-         1.1123595505617978, 1.8679245283018868),
-        ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn",
-         1.159779614325069, 1.2132564841498559),
-        ("results/inthelarge/prBm6.json", "data/inthelarge/prBm6.tpn",
-         1.1798107255520505, 1.1798107255520505),
-        ("results/inthelarge/prCm6.json", "data/inthelarge/prCm6.tpn",
-         1.1798107255520505, 1.1798107255520505),
-        ("results/inthelarge/prDm6.json", "data/inthelarge/prDm6.tpn",
-         1.324009324009324, 1.0737240075614367),
-        ("results/inthelarge/prEm6.json", "data/inthelarge/prEm6.tpn",
-         1.1781818181818182, 1.1696750902527075),
-        ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn",
-         1.2842809364548495, 1.0607734806629834),
+        ("results/bpic17/bpic17_02.json", 1.0555555555555556,
+         1.6521739130434783),
+        ("results/bpic19/bpic19_02.json", 1.1123595505617978,
+         1.8679245283018868),
+        ("results/inthelarge/prAm6.json", 1.159779614325069,
+         1.2132564841498559),
+        ("results/inthelarge/prBm6.json", 1.1798107255520505,
+         1.1798107255520505),
+        ("results/inthelarge/prCm6.json", 1.1798107255520505,
+         1.1798107255520505),
+        ("results/inthelarge/prDm6.json", 1.324009324009324,
+         1.0737240075614367),
+        ("results/inthelarge/prEm6.json", 1.1781818181818182,
+         1.1696750902527075),
+        ("results/inthelarge/prFm6.json", 1.2842809364548495,
+         1.0607734806629834),
         ("results/hospital_billing/hospital_billing_02.json",
-         "data/hospital_billing/Hospital Billing - Event Log.xes",
          1.0178571428571428, 1.78125),
-        ("results/bpic12/bpic12_02.json", "data/bpic12/BPI_Challenge_2012.xes",
-         1.09375, 1.7073170731707317),
-        ("results/bpic13/bpic13_02.json",
-         "data/bpic13/BPI_Challenge_2013_incidents.xes", 1.0833333333333333,
-         1.3)
+        ("results/bpic12/bpic12_02.json", 1.09375, 1.7073170731707317),
+        ("results/bpic13/bpic13_02.json", 1.0833333333333333, 1.3),
+        ("results/traffic/traffic_02.json", 1.3043478260869565,
+         1.3043478260869565),
+        ("results/bpic13/bpic13_split.json", 1.1666666666666667, 1.0),
+        ("results/sepsis/sepsis_split.json", 1.125, 1.35),
+        ("results/bpic12/bpic12_split.json", 1.0, 1.5217391304347827),
+        ("results/bpic17/bpic17_split.json", 1.0, 1.3571428571428572),
+        ("results/hospital_billing/hospital_billing_split.json",
+         1.0333333333333334, 1.4090909090909092),
+        ("results/traffic/traffic_split.json", 1.0588235294117647, 1.2)
     ]
     x = []
     y = []
-    for res_file, model_file, conc_factor, exc_factor in dir_pairs:
+    for res_file, conc_factor, exc_factor in dir_pairs:
         # x = []
         # y = []
         # print(res_file)
@@ -1698,6 +1791,7 @@ def regress_a_priori():
     pipeline.fit(x, y)
     score = pipeline.score(x, y)
     print(score)
+    # print(pipeline["model"].results_.summary())
     for tab in pipeline["model"].results_.summary().tables:
         print(tab.as_latex_tabular())
     # model = pipeline.fit(x, y)
@@ -1730,39 +1824,41 @@ def regress_a_priori():
 
 def regress():
     dir_pairs = [
-        ("results/sepsis/sepsis_05.json",
-         "data/sepsis/Sepsis Cases - Event Log.xes", 1.2307692307692308,
+        ("results/sepsis/sepsis_05.json", 1.2307692307692308,
          1.391304347826087),
-        ("results/bpic17/bpic17_02.json", "data/bpic17/BPI Challenge 2017.xes",
-         1.0555555555555556, 1.6521739130434783),
-        ("results/bpic19/bpic19_02.json", "data/bpic19/BPI_Challenge_2019.xes",
-         1.1123595505617978, 1.8679245283018868),
-        ("results/inthelarge/prAm6.json", "data/inthelarge/prAm6.tpn",
-         1.159779614325069, 1.2132564841498559),
-        ("results/inthelarge/prBm6.json", "data/inthelarge/prBm6.tpn",
-         1.1798107255520505, 1.1798107255520505),
-        ("results/inthelarge/prCm6.json", "data/inthelarge/prCm6.tpn",
-         1.1798107255520505, 1.1798107255520505),
-        ("results/inthelarge/prDm6.json", "data/inthelarge/prDm6.tpn",
-         1.324009324009324, 1.0737240075614367),
-        ("results/inthelarge/prEm6.json", "data/inthelarge/prEm6.tpn",
-         1.1781818181818182, 1.1696750902527075),
-        ("results/inthelarge/prFm6.json", "data/inthelarge/prFm6.tpn",
-         1.2842809364548495, 1.0607734806629834),
+        ("results/bpic17/bpic17_02.json", 1.0555555555555556,
+         1.6521739130434783),
+        ("results/bpic19/bpic19_02.json", 1.1123595505617978,
+         1.8679245283018868),
+        ("results/inthelarge/prAm6.json", 1.159779614325069,
+         1.2132564841498559),
+        ("results/inthelarge/prBm6.json", 1.1798107255520505,
+         1.1798107255520505),
+        ("results/inthelarge/prCm6.json", 1.1798107255520505,
+         1.1798107255520505),
+        ("results/inthelarge/prDm6.json", 1.324009324009324,
+         1.0737240075614367),
+        ("results/inthelarge/prEm6.json", 1.1781818181818182,
+         1.1696750902527075),
+        ("results/inthelarge/prFm6.json", 1.2842809364548495,
+         1.0607734806629834),
         ("results/hospital_billing/hospital_billing_02.json",
-         "data/hospital_billing/Hospital Billing - Event Log.xes",
          1.0178571428571428, 1.78125),
-        ("results/bpic12/bpic12_02.json", "data/bpic12/BPI_Challenge_2012.xes",
-         1.09375, 1.7073170731707317),
-        ("results/bpic13/bpic13_02.json",
-         "data/bpic13/BPI_Challenge_2013_incidents.xes", 1.0833333333333333,
-         1.3)
+        ("results/bpic12/bpic12_02.json", 1.09375, 1.7073170731707317),
+        ("results/bpic13/bpic13_02.json", 1.0833333333333333, 1.3),
+        ("results/traffic/traffic_02.json", 1.3043478260869565,
+         1.3043478260869565),
+        ("results/bpic13/bpic13_split.json", 1.1666666666666667, 1.0),
+        ("results/sepsis/sepsis_split.json", 1.125, 1.35),
+        ("results/bpic12/bpic12_split.json", 1.0, 1.5217391304347827),
+        ("results/bpic17/bpic17_split.json", 1.0, 1.3571428571428572),
+        ("results/hospital_billing/hospital_billing_split.json",
+         1.0333333333333334, 1.4090909090909092),
+        ("results/traffic/traffic_split.json", 1.0588235294117647, 1.2)
     ]
     x = []
     y = []
-    for res_file, model_file, conc_factor, exc_factor in dir_pairs:
-        # x = []
-        # y = []
+    for res_file, conc_factor, exc_factor in dir_pairs:
         # print(res_file)
         with open(res_file) as rf:
             contents = json.load(rf)
@@ -1789,8 +1885,7 @@ def regress():
 
                 x.append(indep)
                 y.append(np.log(t["unf_elapsed_time"]))
-
-    # print(stats.spearmanr(x))
+    # print(stats.pearsonr(x))
 
     # x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(
     # x, y, random_state=2)
@@ -1818,11 +1913,12 @@ def regress():
     pipeline.fit(x, y)
     score = pipeline.score(x, y)
     print(score)
+    # print(pipeline["model"].results_.summary())
     for tab in pipeline["model"].results_.summary().tables:
         print(tab.as_latex_tabular())
 
     # print(pipeline["model"].results_.summary())
-    model = pipeline.fit(x, y)
+    # model = pipeline.fit(x, y)
 
     # Residuals plot
     y_pred = pipeline.predict(x)
@@ -2060,62 +2156,27 @@ def add_metrics():
 
 if __name__ == "__main__":
     # No heuristics stage one
-    # dir_name_color_title_pairs_no_heuristic = [
-    #     (CONCURRENT_RESULT_DIR_NO_HEURISTIC, CONCURRENT_MODEL_DIR, "pink",
-    #      "C"),
-    #     (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR_NO_HEURISTIC,
-    #      CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
-    #     (EXCLUSIVE_RESULT_DIR_NO_HEURISTIC, EXCLUSIVE_MODEL_DIR, "turquoise",
-    #      "E"),
-    #     (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR_NO_HEURISTIC,
-    #      EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
-    #     (LOOP_RESULT_DIR_NO_HEURISTIC, LOOP_MODEL_DIR, "green", "L")
-    # ]
-    # stage_one_figures(dir_name_color_title_pairs_no_heuristic, "no_heuristic")
+    dir_name_color_title_pairs_no_heuristic = [
+        (CONCURRENT_RESULT_DIR_NO_HEURISTIC, CONCURRENT_MODEL_DIR, "pink",
+         "C"),
+        (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR_NO_HEURISTIC,
+         CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
+        (EXCLUSIVE_RESULT_DIR_NO_HEURISTIC, EXCLUSIVE_MODEL_DIR, "turquoise",
+         "E"),
+        (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR_NO_HEURISTIC,
+         EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
+        (LOOP_RESULT_DIR_NO_HEURISTIC, LOOP_MODEL_DIR, "green", "L")
+    ]
+    e2_figures(dir_name_color_title_pairs_no_heuristic, "no_heuristic")
 
-    # # Heuristics stage one
-    # dir_name_color_title_pairs_heuristic = [
-    #     (CONCURRENT_RESULT_DIR, CONCURRENT_MODEL_DIR, "pink", "C"),
-    #     (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR,
-    #      CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
-    #     (EXCLUSIVE_RESULT_DIR, EXCLUSIVE_MODEL_DIR, "turquoise", "E"),
-    #     (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR,
-    #      EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
-    #     (LOOP_RESULT_DIR, LOOP_MODEL_DIR, "green", "L")
-    # ]
-    # stage_one_figures(dir_name_color_title_pairs_heuristic, "heuristic")
-
-    # stage_two_figures()
-    # v_trace_length_plots()
-    # v_sync_prod_plots("synchronous product transitions", "visited states",
-    #   "unfolding")
-    # table()
-    # view_models()
-    # color_plot("v", "t", "unf")
-    # fix_sp_count()
-    # regress()
-    # test_plot()
-    # regress_a_priori()
-    # datasets = [
-    #     ("results/bpic13/bpic13_split.json", "data/bpic13/bpic13_split.bpmn"),
-    #     ("results/sepsis/sepsis_split.json", "data/sepsis/sepsis_split.bpmn"),
-    #     ("results/bpic12/bpic12_split.json", "data/bpic12/bpic12_split.bpmn"),
-    #     ("results/bpic17/bpic17_split.json", "data/bpic17/bpic17_split.bpmn"),
-    #     ("results/hospital_billing/hospital_billing_split.json",
-    #      "data/hospital_billing/hospital_billing_split.bpmn"),
-    #     ("results/traffic/traffic_split.json",
-    #      "data/traffic/traffic_split.bpmn"),
-    # ]
-    # for dataset in datasets:
-    #     bpmn = pm4py.read_bpmn(dataset)
-    #     n, i, f = pm4py.convert_to_petri_net(bpmn)
-    #     print(pm4py.check_soundness(n, i, f)[0])
-    #     pm4py.view_petri_net(n, i, f)
-    # pm4py.view_bpmn(bpmn)
-    # fix_sp_count_split()
-    # stage_two_table()
-    factors()
-    # preliminary("preliminary_sepsis_0_noise.json")
-    # view_models()
-    # stage_three_table()
-# TODO check avg number of input places for each model. higher should mean slower?
+    # Heuristics stage one
+    dir_name_color_title_pairs_heuristic = [
+        (CONCURRENT_RESULT_DIR, CONCURRENT_MODEL_DIR, "pink", "C"),
+        (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR,
+         CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
+        (EXCLUSIVE_RESULT_DIR, EXCLUSIVE_MODEL_DIR, "turquoise", "E"),
+        (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR,
+         EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
+        (LOOP_RESULT_DIR, LOOP_MODEL_DIR, "green", "L")
+    ]
+    e2_figures(dir_name_color_title_pairs_heuristic, "heuristic")

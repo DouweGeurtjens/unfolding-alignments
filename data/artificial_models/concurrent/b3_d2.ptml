@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="a12614bf-270e-4f7d-a3f4-f9ccf4c05ac8" root="c7421d73-be0a-420e-9492-123ed67ce624" id="b2d69098-9049-4228-878f-bd3c3dfe6d29">
+    <and name="" id="c7421d73-be0a-420e-9492-123ed67ce624"/>
+    <sequence name="" id="04c57c1a-45f0-436e-b12e-54ef043bdaf7"/>
+    <sequence name="" id="774a727b-f2da-4430-bf01-3c683b88e725"/>
+    <sequence name="" id="662dca2a-4233-4d46-bb67-9f31846a7f1d"/>
+    <manualTask name="aggregate fully researched e-commerce" id="9b9808f5-e8a6-4706-9ddb-bca137a20a68"/>
+    <manualTask name="utilize stand-alone human capital" id="362aa0fd-7a41-41cd-8484-c38007fa1a4f"/>
+    <manualTask name="harness alternative technologies" id="c2ca65af-f6bc-4ea8-a900-37b6e09908ea"/>
+    <manualTask name="simplify extensible testing procedures" id="219a9e5c-e1e0-4f6d-a8b1-1e358cb8a8a0"/>
+    <manualTask name="formulate exceptional data" id="8b2297e2-0a51-48bd-a0e8-d4e268eca3ef"/>
+    <manualTask name="procrastinate process-centric content" id="01d7ba9a-208a-44ee-a1c1-a9448d98416d"/>
+    <parentsNode id="bffb332e-439e-4185-ab81-cc97185a209c" sourceId="c7421d73-be0a-420e-9492-123ed67ce624" targetId="04c57c1a-45f0-436e-b12e-54ef043bdaf7"/>
+    <parentsNode id="b61eca9e-0481-4e10-8f5e-80e161a03f07" sourceId="c7421d73-be0a-420e-9492-123ed67ce624" targetId="774a727b-f2da-4430-bf01-3c683b88e725"/>
+    <parentsNode id="5eb2474d-44d7-4329-abdc-c122b3dd3f26" sourceId="c7421d73-be0a-420e-9492-123ed67ce624" targetId="662dca2a-4233-4d46-bb67-9f31846a7f1d"/>
+    <parentsNode id="8b5d3399-9794-4352-a8ca-6a39af48798c" sourceId="04c57c1a-45f0-436e-b12e-54ef043bdaf7" targetId="9b9808f5-e8a6-4706-9ddb-bca137a20a68"/>
+    <parentsNode id="c2226291-6647-4446-b901-e9c4d55e794d" sourceId="04c57c1a-45f0-436e-b12e-54ef043bdaf7" targetId="362aa0fd-7a41-41cd-8484-c38007fa1a4f"/>
+    <parentsNode id="9ab860ee-c15e-446a-a86e-8b28da49da66" sourceId="774a727b-f2da-4430-bf01-3c683b88e725" targetId="c2ca65af-f6bc-4ea8-a900-37b6e09908ea"/>
+    <parentsNode id="1c754bb8-9c01-470e-b526-9936d7ea3740" sourceId="774a727b-f2da-4430-bf01-3c683b88e725" targetId="219a9e5c-e1e0-4f6d-a8b1-1e358cb8a8a0"/>
+    <parentsNode id="0c952c5a-a467-47b1-8263-09fe05f31be9" sourceId="662dca2a-4233-4d46-bb67-9f31846a7f1d" targetId="8b2297e2-0a51-48bd-a0e8-d4e268eca3ef"/>
+    <parentsNode id="0d9eb158-719c-416b-802e-f94b73653f58" sourceId="662dca2a-4233-4d46-bb67-9f31846a7f1d" targetId="01d7ba9a-208a-44ee-a1c1-a9448d98416d"/>
+  </processTree>
+</ptml>

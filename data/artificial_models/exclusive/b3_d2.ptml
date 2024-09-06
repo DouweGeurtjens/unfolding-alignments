@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="b82e6318-95ba-4291-b5c3-e1d5a0c2aedf" root="33094c2a-85ba-4ce2-8aa5-c42d216b7f15" id="0d37563d-9804-45dd-96dd-43e90b58debb">
+    <xor name="" id="33094c2a-85ba-4ce2-8aa5-c42d216b7f15"/>
+    <sequence name="" id="672fbc6c-b398-45f3-8b3a-b626314c1e05"/>
+    <sequence name="" id="df0b3975-a713-45fd-b1bb-f08dd755a684"/>
+    <sequence name="" id="02b56bb7-2900-41dc-ac06-dcd470bc0daa"/>
+    <manualTask name="redefine holistic solutions" id="5ceae6e3-1f2c-4aaa-bdcf-792847bf3c43"/>
+    <manualTask name="productize process-centric ideas" id="e0a84710-c087-4ebc-b67c-f776d7d7dde7"/>
+    <manualTask name="restore multifunctional applications" id="b8d2f252-6626-44eb-94e8-b243feff99f1"/>
+    <manualTask name="redefine quality growth strategies" id="23c6f770-fc45-4a40-b1e8-15a43894a5dd"/>
+    <manualTask name="initiate resource-sucking models" id="551d8332-a4d8-4a35-97af-1d92a67c6b95"/>
+    <manualTask name="procrastinate inexpensive collaboration and idea-sharing" id="98775926-7b6e-499f-8f94-6d973fa22946"/>
+    <parentsNode id="bcb4809f-e1c1-4b16-b568-3c59eabf54b6" sourceId="33094c2a-85ba-4ce2-8aa5-c42d216b7f15" targetId="672fbc6c-b398-45f3-8b3a-b626314c1e05"/>
+    <parentsNode id="59ac0117-d1da-4182-bc1a-da791536a904" sourceId="33094c2a-85ba-4ce2-8aa5-c42d216b7f15" targetId="df0b3975-a713-45fd-b1bb-f08dd755a684"/>
+    <parentsNode id="fe892501-5369-4a98-a57d-40c8517eec54" sourceId="33094c2a-85ba-4ce2-8aa5-c42d216b7f15" targetId="02b56bb7-2900-41dc-ac06-dcd470bc0daa"/>
+    <parentsNode id="1bf470a8-9f46-4377-9bc7-b4622774a13b" sourceId="672fbc6c-b398-45f3-8b3a-b626314c1e05" targetId="5ceae6e3-1f2c-4aaa-bdcf-792847bf3c43"/>
+    <parentsNode id="953c0cb1-b094-4202-a0b5-bf4a6155680f" sourceId="672fbc6c-b398-45f3-8b3a-b626314c1e05" targetId="e0a84710-c087-4ebc-b67c-f776d7d7dde7"/>
+    <parentsNode id="ce4703cd-74a8-4adc-83e1-5895bd4e16ca" sourceId="df0b3975-a713-45fd-b1bb-f08dd755a684" targetId="b8d2f252-6626-44eb-94e8-b243feff99f1"/>
+    <parentsNode id="ff574889-de08-4a85-b620-8f74190c9094" sourceId="df0b3975-a713-45fd-b1bb-f08dd755a684" targetId="23c6f770-fc45-4a40-b1e8-15a43894a5dd"/>
+    <parentsNode id="cd83f8ee-dcdb-4671-a981-3ebf1b72a201" sourceId="02b56bb7-2900-41dc-ac06-dcd470bc0daa" targetId="551d8332-a4d8-4a35-97af-1d92a67c6b95"/>
+    <parentsNode id="83623cd2-0c47-4e5c-8a5a-c6492433a2a4" sourceId="02b56bb7-2900-41dc-ac06-dcd470bc0daa" targetId="98775926-7b6e-499f-8f94-6d973fa22946"/>
+  </processTree>
+</ptml>

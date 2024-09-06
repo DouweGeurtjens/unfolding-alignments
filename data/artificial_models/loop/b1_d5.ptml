@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="4e2d14b3-a1c9-4ab3-917d-efae9764eb76" root="ac0261d7-122d-4d09-9190-f833534848cd" id="00e2dfab-ebe6-4145-8628-26facf8de30c">
+    <xorLoop name="" id="ac0261d7-122d-4d09-9190-f833534848cd"/>
+    <sequence name="" id="7603191e-72ee-44ec-993c-839631ddf3f5"/>
+    <automaticTask name="" id="fbeefbad-3f1a-448a-a736-9978440fa089"/>
+    <manualTask name="productize state of the art web-readiness" id="29a143d3-b198-4d37-ad6d-f9c380d10169"/>
+    <manualTask name="monetize emerging processes" id="530cbe98-ef59-4b07-8e49-ae58bc927cab"/>
+    <manualTask name="recaptiualize corporate core competencies" id="65275ed3-0d24-46f5-bf61-cdd3d018cb25"/>
+    <manualTask name="reintermediate backend content" id="e5691fac-c6f5-4a48-a2bc-c24c7f0cd0c2"/>
+    <manualTask name="repurpose functional schemas" id="eda00acb-dc35-4886-868e-7301e6a8067d"/>
+    <parentsNode id="242a921b-b1be-46c7-bd20-06c60bd61df1" sourceId="ac0261d7-122d-4d09-9190-f833534848cd" targetId="7603191e-72ee-44ec-993c-839631ddf3f5"/>
+    <parentsNode id="ac7887ac-0ffa-4e3a-b65e-b7bc77a4246a" sourceId="ac0261d7-122d-4d09-9190-f833534848cd" targetId="fbeefbad-3f1a-448a-a736-9978440fa089"/>
+    <parentsNode id="f5227c72-5a01-4e43-a961-56b017504c76" sourceId="7603191e-72ee-44ec-993c-839631ddf3f5" targetId="29a143d3-b198-4d37-ad6d-f9c380d10169"/>
+    <parentsNode id="4b66aeff-6379-4448-8c84-b6d2776302fd" sourceId="7603191e-72ee-44ec-993c-839631ddf3f5" targetId="530cbe98-ef59-4b07-8e49-ae58bc927cab"/>
+    <parentsNode id="3aa54289-c695-4c99-8833-e53650f3dc08" sourceId="7603191e-72ee-44ec-993c-839631ddf3f5" targetId="65275ed3-0d24-46f5-bf61-cdd3d018cb25"/>
+    <parentsNode id="33a68951-2798-441f-865a-c861f129adce" sourceId="7603191e-72ee-44ec-993c-839631ddf3f5" targetId="e5691fac-c6f5-4a48-a2bc-c24c7f0cd0c2"/>
+    <parentsNode id="75b00528-beb3-47ae-9dc0-74f26cca606b" sourceId="7603191e-72ee-44ec-993c-839631ddf3f5" targetId="eda00acb-dc35-4886-868e-7301e6a8067d"/>
+  </processTree>
+</ptml>

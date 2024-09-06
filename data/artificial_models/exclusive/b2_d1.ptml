@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="d846f782-d5fe-49c8-aca3-13938269d76b" root="3a96ab2c-679e-442c-84a7-e154d844ae23" id="ba60f900-369a-43cc-851f-2bd04aef034c">
+    <xor name="" id="3a96ab2c-679e-442c-84a7-e154d844ae23"/>
+    <sequence name="" id="07e42e98-4fa1-4fae-a52c-1dbc584b3a56"/>
+    <sequence name="" id="3d0b8c8c-22af-4c39-b1c4-08eefb5452a4"/>
+    <manualTask name="actualize progressive scenarios" id="2aeb3dc4-b59f-4163-9f20-477fd8d9e1a3"/>
+    <manualTask name="expedite competitive outsourcing" id="321277d5-c550-453f-901f-9bad78aceec7"/>
+    <parentsNode id="be50e91e-922f-4de2-8f77-89283b165fd6" sourceId="3a96ab2c-679e-442c-84a7-e154d844ae23" targetId="07e42e98-4fa1-4fae-a52c-1dbc584b3a56"/>
+    <parentsNode id="ada61218-0b82-46ff-8a22-3c33cdbdeff1" sourceId="3a96ab2c-679e-442c-84a7-e154d844ae23" targetId="3d0b8c8c-22af-4c39-b1c4-08eefb5452a4"/>
+    <parentsNode id="b3d61fe4-f8d7-42b9-9c86-bb179a2efa13" sourceId="07e42e98-4fa1-4fae-a52c-1dbc584b3a56" targetId="2aeb3dc4-b59f-4163-9f20-477fd8d9e1a3"/>
+    <parentsNode id="e235fd5c-2eaa-44d9-90f7-13bf29e7ee41" sourceId="3d0b8c8c-22af-4c39-b1c4-08eefb5452a4" targetId="321277d5-c550-453f-901f-9bad78aceec7"/>
+  </processTree>
+</ptml>

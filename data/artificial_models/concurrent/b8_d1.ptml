@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="ab2577ad-cced-4890-80fa-ccaeff0602b8" root="2207cd3e-9345-4fad-9dac-75b94405d517" id="726a78ad-cdb1-4eab-9654-cd621c4a0122">
+    <and name="" id="2207cd3e-9345-4fad-9dac-75b94405d517"/>
+    <sequence name="" id="37f16351-6b81-478a-99c1-5c75724454a2"/>
+    <sequence name="" id="962614f0-d0bf-4c68-ad28-f4975e60c5b6"/>
+    <sequence name="" id="aba5c5ea-2fcc-44a6-9c23-6ca24a8df5a3"/>
+    <sequence name="" id="a65e3b6a-6b20-4d69-b01b-b1b06fb7adcd"/>
+    <sequence name="" id="3e217a78-5d42-4f58-bc12-d2d3cd0d9bae"/>
+    <sequence name="" id="45d70cfd-b309-4d0f-b514-f4cc84badc7a"/>
+    <sequence name="" id="ac9e84b6-d95e-4421-9abf-07168cb50d32"/>
+    <sequence name="" id="3154b7ef-30cb-4147-8d86-04c4a633f6dc"/>
+    <manualTask name="innovate proactive systems" id="9305a981-3670-4455-9d48-0faee8c12c56"/>
+    <manualTask name="matrix wireless platforms" id="02a0cf6c-a78a-4296-b949-6c36fd496217"/>
+    <manualTask name="brand enterprise imperatives" id="cc0b19e6-9a0d-4936-a056-b3654df89338"/>
+    <manualTask name="reintermediate intuitive potentialities" id="54046e43-6b28-4833-af9c-4ed0784138c4"/>
+    <manualTask name="develop mission-critical human capital" id="3689ba39-8f5b-4d2e-8ad7-a5cb0dcfcdeb"/>
+    <manualTask name="maintain robust technology" id="50a8e14b-5b36-4cf6-addd-4b7f0aabf35e"/>
+    <manualTask name="syndicate interoperable solutions" id="eec367fb-e7ed-4161-9afc-2750da74e181"/>
+    <manualTask name="actualize progressive fungibility" id="0d017bbc-ffe5-4da9-b154-1c0d210397f6"/>
+    <parentsNode id="7cea8a92-f4a6-4da9-970e-6e39eb57183b" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="37f16351-6b81-478a-99c1-5c75724454a2"/>
+    <parentsNode id="fefda252-50bb-4205-9a13-cfc3c941b79b" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="962614f0-d0bf-4c68-ad28-f4975e60c5b6"/>
+    <parentsNode id="f037e7e7-fe6c-4b9c-a454-e22bdde0df16" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="aba5c5ea-2fcc-44a6-9c23-6ca24a8df5a3"/>
+    <parentsNode id="b5ac7ad1-fb3f-4dd1-bb96-08b0419e6771" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="a65e3b6a-6b20-4d69-b01b-b1b06fb7adcd"/>
+    <parentsNode id="fe1a8c18-605d-49a6-8b39-02b4322013c9" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="3e217a78-5d42-4f58-bc12-d2d3cd0d9bae"/>
+    <parentsNode id="4a752001-6332-417f-a4d4-4f89d82bb7e6" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="45d70cfd-b309-4d0f-b514-f4cc84badc7a"/>
+    <parentsNode id="a61d0596-55b3-4a47-a971-1b63ef53ddff" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="ac9e84b6-d95e-4421-9abf-07168cb50d32"/>
+    <parentsNode id="f970fb86-9911-459b-a657-dcdd1925e84f" sourceId="2207cd3e-9345-4fad-9dac-75b94405d517" targetId="3154b7ef-30cb-4147-8d86-04c4a633f6dc"/>
+    <parentsNode id="df68bb61-6309-445b-b3ba-5ad5caaa05e3" sourceId="37f16351-6b81-478a-99c1-5c75724454a2" targetId="9305a981-3670-4455-9d48-0faee8c12c56"/>
+    <parentsNode id="2a287716-5f41-47fc-af50-ce5802f44dd9" sourceId="962614f0-d0bf-4c68-ad28-f4975e60c5b6" targetId="02a0cf6c-a78a-4296-b949-6c36fd496217"/>
+    <parentsNode id="d52a6186-4c74-4e91-8af6-64e6f687e8e1" sourceId="aba5c5ea-2fcc-44a6-9c23-6ca24a8df5a3" targetId="cc0b19e6-9a0d-4936-a056-b3654df89338"/>
+    <parentsNode id="844e0cdc-5156-400d-bf71-0f53da3fec09" sourceId="a65e3b6a-6b20-4d69-b01b-b1b06fb7adcd" targetId="54046e43-6b28-4833-af9c-4ed0784138c4"/>
+    <parentsNode id="bbec4d03-0eb9-4c57-8a12-9191bdc77743" sourceId="3e217a78-5d42-4f58-bc12-d2d3cd0d9bae" targetId="3689ba39-8f5b-4d2e-8ad7-a5cb0dcfcdeb"/>
+    <parentsNode id="fc1601a3-8cef-448f-92dd-d7121b8759c3" sourceId="45d70cfd-b309-4d0f-b514-f4cc84badc7a" targetId="50a8e14b-5b36-4cf6-addd-4b7f0aabf35e"/>
+    <parentsNode id="83be0a9a-9c9e-4a9a-a1c6-e7f10f78f493" sourceId="ac9e84b6-d95e-4421-9abf-07168cb50d32" targetId="eec367fb-e7ed-4161-9afc-2750da74e181"/>
+    <parentsNode id="b2f8fb3e-c1bd-41a3-9c4e-9a541fda992f" sourceId="3154b7ef-30cb-4147-8d86-04c4a633f6dc" targetId="0d017bbc-ffe5-4da9-b154-1c0d210397f6"/>
+  </processTree>
+</ptml>

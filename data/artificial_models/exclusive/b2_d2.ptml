@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="d1456702-b9ef-49d3-a277-7ee27ffedd05" root="68d3b4b2-c3cd-44ba-8788-d8c7cbc946ca" id="5f45a8eb-66f4-424d-a00f-8038424e1154">
+    <xor name="" id="68d3b4b2-c3cd-44ba-8788-d8c7cbc946ca"/>
+    <sequence name="" id="77d8a2d5-056f-489f-92c4-1f3ff85e7ffe"/>
+    <sequence name="" id="6d271652-deb6-4e11-9269-74e6d238fe5f"/>
+    <manualTask name="deploy performance based systems" id="1e4900dc-d881-46bf-b160-ec87520076c9"/>
+    <manualTask name="embrace vertical collaboration and idea-sharing" id="1f7860f5-2600-499f-8222-a05efb852435"/>
+    <manualTask name="visualize stand-alone collaboration and idea-sharing" id="8472a967-9dfd-48fd-92f2-8c2ad9cfeec1"/>
+    <manualTask name="deploy premium mindshare" id="bdce095a-4963-4fca-a470-03e1c2297579"/>
+    <parentsNode id="552f1399-92df-45ea-997d-656183f8ce90" sourceId="68d3b4b2-c3cd-44ba-8788-d8c7cbc946ca" targetId="77d8a2d5-056f-489f-92c4-1f3ff85e7ffe"/>
+    <parentsNode id="9293e3dc-35cf-41ac-bec3-d60bcc18cfad" sourceId="68d3b4b2-c3cd-44ba-8788-d8c7cbc946ca" targetId="6d271652-deb6-4e11-9269-74e6d238fe5f"/>
+    <parentsNode id="066da45d-897d-4a92-b1ce-5c1ec4945e48" sourceId="77d8a2d5-056f-489f-92c4-1f3ff85e7ffe" targetId="1e4900dc-d881-46bf-b160-ec87520076c9"/>
+    <parentsNode id="f988641d-e7c9-4378-b04e-c2c28e57dd32" sourceId="77d8a2d5-056f-489f-92c4-1f3ff85e7ffe" targetId="1f7860f5-2600-499f-8222-a05efb852435"/>
+    <parentsNode id="bc45df13-522d-4738-ae56-9c7f120e3ffb" sourceId="6d271652-deb6-4e11-9269-74e6d238fe5f" targetId="8472a967-9dfd-48fd-92f2-8c2ad9cfeec1"/>
+    <parentsNode id="11f5a702-ab3f-4cfc-a399-c9bef6155303" sourceId="6d271652-deb6-4e11-9269-74e6d238fe5f" targetId="bdce095a-4963-4fca-a470-03e1c2297579"/>
+  </processTree>
+</ptml>

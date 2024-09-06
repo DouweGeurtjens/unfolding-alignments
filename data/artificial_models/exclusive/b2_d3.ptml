@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="4230ad80-2889-486a-bca4-ba5da23a4b2c" root="7347281a-66a0-4a8e-864a-7302660affb9" id="d76cd342-d5a3-465c-81e3-3610b32b4d9d">
+    <xor name="" id="7347281a-66a0-4a8e-864a-7302660affb9"/>
+    <sequence name="" id="0c104daa-4703-4dda-a6cf-d358cb641ed7"/>
+    <sequence name="" id="7052b549-0b53-4f49-8036-40ae95b05eec"/>
+    <manualTask name="enhance covalent outsourcing" id="5c3da604-c077-4cc4-9b8f-6132e5a86dae"/>
+    <manualTask name="initiate resource-leveling web services" id="2d5d7a3f-361a-45a1-9793-286ba5a720f7"/>
+    <manualTask name="productivate enterprise outsourcing" id="1992de0d-40b8-4c0a-93c4-ac597f492529"/>
+    <manualTask name="strategize cost effective core competencies" id="18dbd016-c89b-4731-b44f-b26a201b8832"/>
+    <manualTask name="strategize global markets" id="eaffb8ff-115b-4f83-a31e-2d1492c23d6c"/>
+    <manualTask name="redefine web-enabled e-commerce" id="ad17c059-6483-40ed-a8e5-ed6f4ee3137c"/>
+    <parentsNode id="97249d1c-861b-4f67-a861-c1b9dc999485" sourceId="7347281a-66a0-4a8e-864a-7302660affb9" targetId="0c104daa-4703-4dda-a6cf-d358cb641ed7"/>
+    <parentsNode id="358e3fd7-1d4c-4ce0-b4f0-e9135a9352ec" sourceId="7347281a-66a0-4a8e-864a-7302660affb9" targetId="7052b549-0b53-4f49-8036-40ae95b05eec"/>
+    <parentsNode id="428c7e9f-0add-4d48-8325-86335c12f9fb" sourceId="0c104daa-4703-4dda-a6cf-d358cb641ed7" targetId="5c3da604-c077-4cc4-9b8f-6132e5a86dae"/>
+    <parentsNode id="28c13928-2443-4ed1-a97e-49b85463d37d" sourceId="0c104daa-4703-4dda-a6cf-d358cb641ed7" targetId="2d5d7a3f-361a-45a1-9793-286ba5a720f7"/>
+    <parentsNode id="5dac3ef9-0d86-4903-a221-976ea7f6a3fc" sourceId="0c104daa-4703-4dda-a6cf-d358cb641ed7" targetId="1992de0d-40b8-4c0a-93c4-ac597f492529"/>
+    <parentsNode id="47c8b76d-512f-4490-a6a5-4b2fb5b61203" sourceId="7052b549-0b53-4f49-8036-40ae95b05eec" targetId="18dbd016-c89b-4731-b44f-b26a201b8832"/>
+    <parentsNode id="512dc31e-1152-4914-aaa8-2146eca96856" sourceId="7052b549-0b53-4f49-8036-40ae95b05eec" targetId="eaffb8ff-115b-4f83-a31e-2d1492c23d6c"/>
+    <parentsNode id="7c9af6aa-5f32-4244-b2df-236f44dd25ea" sourceId="7052b549-0b53-4f49-8036-40ae95b05eec" targetId="ad17c059-6483-40ed-a8e5-ed6f4ee3137c"/>
+  </processTree>
+</ptml>

@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="4741aaf4-2419-44c4-b8c8-4637cd944349" root="5deb6c3b-6edc-473e-861a-b18af419c128" id="e94eccb2-a70f-4199-b5ba-0167e42b4357">
+    <xor name="" id="5deb6c3b-6edc-473e-861a-b18af419c128"/>
+    <sequence name="" id="360db5f7-f77c-4e61-9075-c36313ad1cba"/>
+    <sequence name="" id="a45cb567-6869-4701-9a0b-86778750a884"/>
+    <sequence name="" id="0180b46a-0baf-46be-bc3d-cb770bd472ab"/>
+    <sequence name="" id="4b97bc76-5c88-44ed-be29-e142d7de4f88"/>
+    <sequence name="" id="c96d9dc3-3a0c-4467-bfc2-c6255542a77d"/>
+    <sequence name="" id="fa5a78f9-2c77-4272-9018-9f0b2482a6d0"/>
+    <sequence name="" id="397e6a7a-a5e1-4405-8584-9d88f4301810"/>
+    <manualTask name="generate wireless manufactured products" id="abeb9da5-a730-442c-84cd-a16aa68d4f08"/>
+    <manualTask name="initiate superior e-services" id="427dc127-4caf-43f0-a08e-a9cc470eb7ff"/>
+    <manualTask name="promote high standards in ROI" id="6cea5a3b-d5f5-48cc-99ad-b3414ed05466"/>
+    <manualTask name="reintermediate technically sound relationships" id="7a854efe-3dcc-4e76-a3b8-89fe1acceb8a"/>
+    <manualTask name="scale client-based initiatives" id="37be80cc-53d9-408f-8f2b-8b0b327ee91b"/>
+    <manualTask name="engage multifunctional imperatives" id="06711abc-7de0-4728-b5b2-712bd8c1478f"/>
+    <manualTask name="impact economically sound ROI" id="d4e7616a-2862-4d2f-a88a-2263fa6bc2fc"/>
+    <parentsNode id="95f74829-49af-4b72-8932-8b9a823c38bf" sourceId="5deb6c3b-6edc-473e-861a-b18af419c128" targetId="360db5f7-f77c-4e61-9075-c36313ad1cba"/>
+    <parentsNode id="5ccc416a-c1d3-446f-9ad3-e47ed9b346fa" sourceId="5deb6c3b-6edc-473e-861a-b18af419c128" targetId="a45cb567-6869-4701-9a0b-86778750a884"/>
+    <parentsNode id="27c9a706-6426-4d33-b1dc-7de38885f9df" sourceId="5deb6c3b-6edc-473e-861a-b18af419c128" targetId="0180b46a-0baf-46be-bc3d-cb770bd472ab"/>
+    <parentsNode id="19b9dc79-63b4-4713-9ca1-a944b036fa52" sourceId="5deb6c3b-6edc-473e-861a-b18af419c128" targetId="4b97bc76-5c88-44ed-be29-e142d7de4f88"/>
+    <parentsNode id="58e07dbb-2a8a-40aa-95d3-ce4ba9f72233" sourceId="5deb6c3b-6edc-473e-861a-b18af419c128" targetId="c96d9dc3-3a0c-4467-bfc2-c6255542a77d"/>
+    <parentsNode id="fce78258-d9e4-4068-bae5-72784264dcbf" sourceId="5deb6c3b-6edc-473e-861a-b18af419c128" targetId="fa5a78f9-2c77-4272-9018-9f0b2482a6d0"/>
+    <parentsNode id="984a6045-076b-4e85-b954-f11c00059f1b" sourceId="5deb6c3b-6edc-473e-861a-b18af419c128" targetId="397e6a7a-a5e1-4405-8584-9d88f4301810"/>
+    <parentsNode id="afef4b70-870c-44c0-9f33-89fed380d398" sourceId="360db5f7-f77c-4e61-9075-c36313ad1cba" targetId="abeb9da5-a730-442c-84cd-a16aa68d4f08"/>
+    <parentsNode id="627f56cb-f9f8-43fe-8a5f-8beb3660ba3c" sourceId="a45cb567-6869-4701-9a0b-86778750a884" targetId="427dc127-4caf-43f0-a08e-a9cc470eb7ff"/>
+    <parentsNode id="4e2417fa-8fc8-442d-83fd-018af9c97a43" sourceId="0180b46a-0baf-46be-bc3d-cb770bd472ab" targetId="6cea5a3b-d5f5-48cc-99ad-b3414ed05466"/>
+    <parentsNode id="1ac055d3-3dfb-4ecb-97d5-f32f02d400cf" sourceId="4b97bc76-5c88-44ed-be29-e142d7de4f88" targetId="7a854efe-3dcc-4e76-a3b8-89fe1acceb8a"/>
+    <parentsNode id="57435659-2996-4f27-957f-f61970282ccc" sourceId="c96d9dc3-3a0c-4467-bfc2-c6255542a77d" targetId="37be80cc-53d9-408f-8f2b-8b0b327ee91b"/>
+    <parentsNode id="ad6dfd9c-5de4-4f4a-962e-958b0388e621" sourceId="fa5a78f9-2c77-4272-9018-9f0b2482a6d0" targetId="06711abc-7de0-4728-b5b2-712bd8c1478f"/>
+    <parentsNode id="0b03338e-d8bd-4c43-9aaf-744ebebc2e1d" sourceId="397e6a7a-a5e1-4405-8584-9d88f4301810" targetId="d4e7616a-2862-4d2f-a88a-2263fa6bc2fc"/>
+  </processTree>
+</ptml>

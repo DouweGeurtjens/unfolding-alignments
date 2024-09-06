@@ -1,0 +1,42 @@
+CaseID,Activity,Timestamp
+c1,Make booking,20200422T0503
+c1,Submit payment details,20200422T0504
+c1,Submit proof of enrollment,20200422T0505
+c1,Await contract,20200422T0506
+c1,Countersign,20200422T0507
+
+c2,Make booking,20200422T0503
+c2,Submit proof of enrollment,20200422T0504
+c2,Submit payment details,20200422T0505
+c2,Await contract,20200422T0506
+c2,Countersign,20200422T0507
+
+c3,Make booking,20200422T0503
+c3,Use previous data,20200422T0504
+c3,Await contract,20200422T0506
+c3,Countersign,20200422T0507
+
+c4,Make booking,20200422T0503
+c4,Use previous data,20200422T0504
+c4,Retract data,20200422T0505
+c4,Use previous data,20200422T0506
+c4,Await contract,20200422T0507
+c4,Countersign,20200422T0508
+
+c5,Make booking,20200422T0503
+c5,Submit payment details,20200422T0504
+c5,Submit proof of enrollment,20200422T0505
+c5,Retract data,20200422T0506
+c5,Submit payment details,20200422T0507
+c5,Submit proof of enrollment,20200422T0508
+c5,Await contract,20200422T0509
+c5,Countersign,20200422T0510
+
+c6,Make booking,20200422T0503
+c6,Submit proof of enrollment,20200422T0504
+c6,Submit payment details,20200422T0505
+c6,Retract data,20200422T0506
+c6,Submit proof of enrollment,20200422T0507
+c6,Submit payment details,20200422T0508
+c6,Await contract,20200422T0509
+c6,Countersign,20200422T0510

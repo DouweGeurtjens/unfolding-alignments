@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="9078a762-ed5b-4ba2-8386-b9f47e70f667" root="13b38c73-a3fe-4600-8b29-bd3d39bf55dd" id="4b71fe5f-3be6-4992-aae5-a50f3cdfd83c">
+    <xorLoop name="" id="13b38c73-a3fe-4600-8b29-bd3d39bf55dd"/>
+    <sequence name="" id="d856d92a-1c87-4c77-bd78-d0f3ef4fa0c9"/>
+    <automaticTask name="" id="162f9bef-40d5-4fdb-a6e8-d1388ebd29da"/>
+    <manualTask name="develop business potentialities" id="f23411e9-d935-4ddb-a568-141c8cb1e56a"/>
+    <manualTask name="enhance fully researched rocess improvements" id="8ee92e4b-ea44-462e-85c4-4a3d82f8e274"/>
+    <parentsNode id="91b39176-95f6-4f7d-a42d-d288d876036d" sourceId="13b38c73-a3fe-4600-8b29-bd3d39bf55dd" targetId="d856d92a-1c87-4c77-bd78-d0f3ef4fa0c9"/>
+    <parentsNode id="f2f9bb94-fd4f-41db-a0fb-821c9398d47c" sourceId="13b38c73-a3fe-4600-8b29-bd3d39bf55dd" targetId="162f9bef-40d5-4fdb-a6e8-d1388ebd29da"/>
+    <parentsNode id="48b5352d-49f1-4b29-8183-81b3797f8e7f" sourceId="d856d92a-1c87-4c77-bd78-d0f3ef4fa0c9" targetId="f23411e9-d935-4ddb-a568-141c8cb1e56a"/>
+    <parentsNode id="78a72431-e759-4b7d-8724-0099a5015aac" sourceId="d856d92a-1c87-4c77-bd78-d0f3ef4fa0c9" targetId="8ee92e4b-ea44-462e-85c4-4a3d82f8e274"/>
+  </processTree>
+</ptml>

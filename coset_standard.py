@@ -6,15 +6,10 @@ from typing import TypeAlias
 import cProfile, pstats
 import heapq
 from operator import itemgetter
-# TODO fix imports
 from petrinet import *
 from itertools import product, combinations
 from coset_base import *
-# TODO ALWAYS REMEMBER TO KEEP IN MIND THAT CONDITIONS/EVENTS ARE NOT DIRECTLY COMPARABLE TO PLACES/TRANSITIONS
-# TODO THIS MEANS THAT SET OPERATIONS WILL ONLY WORK BETWEEN THE SAME TYPE, SO NO conditions.intersection.places
 
-# TODO there is some issue with the synchronous product and invisible transitions
-# TODO set unions take a lot of time, perhaps it's possible (in some cases) to use a linked list for faster extension?
 PlaceID: TypeAlias = int
 TransitionID: TypeAlias = int
 
@@ -38,7 +33,6 @@ class BranchingProcessStandard(BranchingProcess):
             added_event, added_conditions = self.extension_to_bp_node(
                 astar_item.pe, astar_item.g)
 
-            # TODO make this nicer
             # We allow only a single place as final marking
             if len(added_conditions) == 1:
                 if self.underlying_net.get_net_node_by_id(
@@ -72,42 +66,4 @@ class BranchingProcessStandard(BranchingProcess):
 
 
 if __name__ == "__main__":
-    # model_net, model_im, model_fm = import_from_tpn("./inthelarge/prAm6.tpn")
-    # xes_df = pm4py.read_xes("./inthelarge/prAm6.xes")
-    # model_net, model_im, model_fm = pm4py.read_pnml(
-    #     "./banktransfer/model/original/banktransfer_opennet.pnml", True)
-    # xes_df = pm4py.read_xes("./banktransfer/logs/2000-all-nonoise.xes")
-    xes_df = pm4py.read_xes("data/Sepsis Cases - Event Log.xes")
-    model_net, model_im, model_fm = discover_petri_net_inductive(
-        xes_df, noise_threshold=0.5)
-    xes_el = convert_to_event_log(format_dataframe(xes_df))
-    # config = bp.get_full_configuration_from_marking(alignment)
-    # alignment_net = bp.convert_nodes_to_net(config.nodes)
-    # view_petri_net(alignment_net)
-    for trace in xes_el:
-        # rm_e = None
-        # for e in trace:
-        #     if e["concept:name"] == "ER Registration":
-        #         rm_e = e
-        # trace._list.remove(rm_e)
-        trace_net, trace_net_im, trace_net_fm = construct_trace_net(
-            trace, "concept:name", "concept:name")
-        sync_net, sync_im, sync_fm, cost_function = construct_synchronous_product(
-            model_net, model_im, model_fm, trace_net, trace_net_im,
-            trace_net_fm)
-        extended_net = ExtendedSyncNet(sync_net, sync_im, sync_fm,
-                                       cost_function)
-        if len(sync_net.transitions) < 200:
-            continue
-        print(len(sync_net.transitions))
-        bp = BranchingProcessStandard(extended_net)
-        bp.initialise_from_initial_marking()
-        with cProfile.Profile() as pr:
-            alignment, _ = bp.astar()
-            conf = bp.get_full_configuration_from_marking(alignment)
-            view_petri_net(bp.convert_nodes_to_net(conf.nodes))
-        pr.dump_stats("prof.prof")
-        print(
-            f"Qd {bp.possible_extensions._queued}, Vd {bp.possible_extensions._visited}"
-        )
-        break
+    pass

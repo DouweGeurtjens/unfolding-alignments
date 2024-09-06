@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="bdeae212-e87f-487c-b0f4-ab849406a924" root="ac66eb21-1c5b-47c7-8171-6008c706ae9d" id="4ba31f00-e110-4fdc-b821-2650341445c3">
+    <xor name="" id="ac66eb21-1c5b-47c7-8171-6008c706ae9d"/>
+    <sequence name="" id="395b67a8-a9a6-4bb6-9ec1-d87efceb6751"/>
+    <sequence name="" id="64b4edb2-8b47-413d-8d5f-5a8fc9bc7863"/>
+    <sequence name="" id="8391459b-20df-4a2c-8c83-85653e5c81a5"/>
+    <manualTask name="morph business imperatives" id="9c556330-f6da-49f1-b549-5ddaeb821c69"/>
+    <manualTask name="enable B2B networks" id="86af603e-abb6-483a-984f-1f55e542c155"/>
+    <manualTask name="build interoperable e-tailers" id="f04f5298-7586-4798-b8a0-ed6593956715"/>
+    <parentsNode id="5ea0e29e-9977-479e-9957-42f5666fba4e" sourceId="ac66eb21-1c5b-47c7-8171-6008c706ae9d" targetId="395b67a8-a9a6-4bb6-9ec1-d87efceb6751"/>
+    <parentsNode id="2389bb4a-ffd1-4739-90e0-21f3f1e43f87" sourceId="ac66eb21-1c5b-47c7-8171-6008c706ae9d" targetId="64b4edb2-8b47-413d-8d5f-5a8fc9bc7863"/>
+    <parentsNode id="3efa714d-6cbe-4678-80da-96193471b93e" sourceId="ac66eb21-1c5b-47c7-8171-6008c706ae9d" targetId="8391459b-20df-4a2c-8c83-85653e5c81a5"/>
+    <parentsNode id="80b1ca2f-bd4d-4e6d-9ec4-c7b74bda2f45" sourceId="395b67a8-a9a6-4bb6-9ec1-d87efceb6751" targetId="9c556330-f6da-49f1-b549-5ddaeb821c69"/>
+    <parentsNode id="d7eb74bc-7cca-4c88-9df3-612460071d64" sourceId="64b4edb2-8b47-413d-8d5f-5a8fc9bc7863" targetId="86af603e-abb6-483a-984f-1f55e542c155"/>
+    <parentsNode id="37a14ede-c0cb-40ea-b751-9890102d7342" sourceId="8391459b-20df-4a2c-8c83-85653e5c81a5" targetId="f04f5298-7586-4798-b8a0-ed6593956715"/>
+  </processTree>
+</ptml>

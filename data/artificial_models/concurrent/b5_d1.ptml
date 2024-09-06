@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="83b4b31b-4f9f-4935-8620-11105a32f117" root="cdb84f23-6f92-4499-a316-c22930b3cbe5" id="d37b1444-cd33-42e0-acb1-8639dcbea365">
+    <and name="" id="cdb84f23-6f92-4499-a316-c22930b3cbe5"/>
+    <sequence name="" id="8dc8ce2c-6e5a-4aac-9c9d-eb61a20f7aa1"/>
+    <sequence name="" id="f8c4f389-5ea0-4212-87f5-8ea89130c3f6"/>
+    <sequence name="" id="0d0d4709-f945-4e6e-812d-a2d7117f2034"/>
+    <sequence name="" id="5f70634f-d185-4dc9-b3f4-010e54381fec"/>
+    <sequence name="" id="ed06a819-21a1-45c7-8fdd-a74ca610a253"/>
+    <manualTask name="develop exceptional models" id="0055de90-709f-46da-ac18-b72a226decb5"/>
+    <manualTask name="innovate fungible fungibility" id="69a37388-21e3-4612-bd3c-4f8d9c59f236"/>
+    <manualTask name="seize cross-media products" id="a7e740be-4326-4780-b050-8758ab48120e"/>
+    <manualTask name="reinvent equity invested customer service" id="544b4f41-ed88-41e8-9cb5-1c37bb47dc13"/>
+    <manualTask name="impact elastic users" id="7d675a06-4a22-40ea-aede-373ff14df374"/>
+    <parentsNode id="a14983f3-c06a-4e7f-a41b-283aa2e01e8e" sourceId="cdb84f23-6f92-4499-a316-c22930b3cbe5" targetId="8dc8ce2c-6e5a-4aac-9c9d-eb61a20f7aa1"/>
+    <parentsNode id="86b22dc6-b37c-4a8c-8a19-d5b2af5e6ce2" sourceId="cdb84f23-6f92-4499-a316-c22930b3cbe5" targetId="f8c4f389-5ea0-4212-87f5-8ea89130c3f6"/>
+    <parentsNode id="61c89726-ccbf-480e-89b0-efb02597475d" sourceId="cdb84f23-6f92-4499-a316-c22930b3cbe5" targetId="0d0d4709-f945-4e6e-812d-a2d7117f2034"/>
+    <parentsNode id="75025271-7a1b-4e1b-bf98-a6b30b5212ba" sourceId="cdb84f23-6f92-4499-a316-c22930b3cbe5" targetId="5f70634f-d185-4dc9-b3f4-010e54381fec"/>
+    <parentsNode id="6be99a73-799c-43db-8d6b-31b14dee2131" sourceId="cdb84f23-6f92-4499-a316-c22930b3cbe5" targetId="ed06a819-21a1-45c7-8fdd-a74ca610a253"/>
+    <parentsNode id="d987d2b6-0a5c-4e5a-a4fb-7f3f213edf76" sourceId="8dc8ce2c-6e5a-4aac-9c9d-eb61a20f7aa1" targetId="0055de90-709f-46da-ac18-b72a226decb5"/>
+    <parentsNode id="6bd0c89b-4740-46c6-86ef-0cceeb411b97" sourceId="f8c4f389-5ea0-4212-87f5-8ea89130c3f6" targetId="69a37388-21e3-4612-bd3c-4f8d9c59f236"/>
+    <parentsNode id="05aedf63-77f6-44b1-b1db-c532f2902274" sourceId="0d0d4709-f945-4e6e-812d-a2d7117f2034" targetId="a7e740be-4326-4780-b050-8758ab48120e"/>
+    <parentsNode id="753cf7fc-3576-4223-8740-ddf0431ffc49" sourceId="5f70634f-d185-4dc9-b3f4-010e54381fec" targetId="544b4f41-ed88-41e8-9cb5-1c37bb47dc13"/>
+    <parentsNode id="10db351f-7576-4694-8b82-22f895d80cab" sourceId="ed06a819-21a1-45c7-8fdd-a74ca610a253" targetId="7d675a06-4a22-40ea-aede-373ff14df374"/>
+  </processTree>
+</ptml>

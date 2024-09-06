@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="66778e85-e39a-4a82-85d2-8b7004b49e0e" root="18f1377d-d1e4-4dfe-b7d0-078809215cb4" id="391639c8-5bdc-451e-a6f0-1ac7dc29dc01">
+    <xorLoop name="" id="18f1377d-d1e4-4dfe-b7d0-078809215cb4"/>
+    <sequence name="" id="578e781e-d390-4342-8ae9-8cee6dfd1ddb"/>
+    <automaticTask name="" id="582f8255-dc2d-4df1-a017-90e4e404ecab"/>
+    <manualTask name="deploy accurate clouds" id="2af81c18-c4c1-4e69-a949-f6ae5210fd61"/>
+    <manualTask name="morph intermandated leadership" id="d31793fc-8540-4949-a2fb-560eba7478ea"/>
+    <manualTask name="scale superior innovation" id="65dff867-cbfb-417c-890d-fb2a912d0ce2"/>
+    <manualTask name="supply interdependent testing procedures" id="78969d71-df3d-4951-827c-fc1bc9bbfc2c"/>
+    <parentsNode id="189adbab-e23f-4711-82d1-81e6dd2d8f5a" sourceId="18f1377d-d1e4-4dfe-b7d0-078809215cb4" targetId="578e781e-d390-4342-8ae9-8cee6dfd1ddb"/>
+    <parentsNode id="b7e0dbdc-7b0f-4174-ba57-e1bba768f240" sourceId="18f1377d-d1e4-4dfe-b7d0-078809215cb4" targetId="582f8255-dc2d-4df1-a017-90e4e404ecab"/>
+    <parentsNode id="e6bf5219-7bb6-46b0-aa17-297c198b1d63" sourceId="578e781e-d390-4342-8ae9-8cee6dfd1ddb" targetId="2af81c18-c4c1-4e69-a949-f6ae5210fd61"/>
+    <parentsNode id="82f8a299-f149-4f0c-884e-e615fe653118" sourceId="578e781e-d390-4342-8ae9-8cee6dfd1ddb" targetId="d31793fc-8540-4949-a2fb-560eba7478ea"/>
+    <parentsNode id="2fd0d637-c8bc-4c04-a9b7-fe2f607a9d7e" sourceId="578e781e-d390-4342-8ae9-8cee6dfd1ddb" targetId="65dff867-cbfb-417c-890d-fb2a912d0ce2"/>
+    <parentsNode id="2480acbe-9c05-4b13-9be6-b101cd68893c" sourceId="578e781e-d390-4342-8ae9-8cee6dfd1ddb" targetId="78969d71-df3d-4951-827c-fc1bc9bbfc2c"/>
+  </processTree>
+</ptml>

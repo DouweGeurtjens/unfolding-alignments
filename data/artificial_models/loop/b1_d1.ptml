@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="17845ad2-cefb-463b-8c29-acc862267c1f" root="88b70151-ffac-41dc-854b-5009286c0fa4" id="9f94fe06-19c4-450c-b67e-82894c4f2110">
+    <xorLoop name="" id="88b70151-ffac-41dc-854b-5009286c0fa4"/>
+    <sequence name="" id="de71ea9c-b69d-4f1e-a675-7adfbe33709d"/>
+    <automaticTask name="" id="38618668-5bc7-4de6-9a9f-5e53f2253e6c"/>
+    <manualTask name="actualize agile paradigms" id="a8b7ee17-ff94-4329-8d58-08367ed76b66"/>
+    <parentsNode id="38e43798-089e-488c-9fe9-b494c481b724" sourceId="88b70151-ffac-41dc-854b-5009286c0fa4" targetId="de71ea9c-b69d-4f1e-a675-7adfbe33709d"/>
+    <parentsNode id="e39a04f5-6401-4a4c-83d2-3b1a20d373bd" sourceId="88b70151-ffac-41dc-854b-5009286c0fa4" targetId="38618668-5bc7-4de6-9a9f-5e53f2253e6c"/>
+    <parentsNode id="8a66478c-9111-4cb6-bfc7-a6e0d5b35a8c" sourceId="de71ea9c-b69d-4f1e-a675-7adfbe33709d" targetId="a8b7ee17-ff94-4329-8d58-08367ed76b66"/>
+  </processTree>
+</ptml>

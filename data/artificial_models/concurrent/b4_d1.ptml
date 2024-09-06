@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="43eb2de5-f479-4df7-a1e3-3c4e9e072bca" root="21e4e29e-a637-483e-9d29-56ce80db0665" id="c3055587-916c-4424-b76e-7f954971e260">
+    <and name="" id="21e4e29e-a637-483e-9d29-56ce80db0665"/>
+    <sequence name="" id="304eb2af-283d-4e52-9161-b931b593d81b"/>
+    <sequence name="" id="e383b157-6877-4b94-bcc5-d72ce26f1123"/>
+    <sequence name="" id="579ccbb7-a7fd-473a-bb80-2d5d613480df"/>
+    <sequence name="" id="493db09b-a09f-4fac-8142-0847d2006a6c"/>
+    <manualTask name="whiteboard client-centered content" id="bca89233-a5fc-42a4-81bc-a7a04b8651f8"/>
+    <manualTask name="iterate standards compliant wins" id="bae4195d-fb40-4eec-aecd-44081c97f43d"/>
+    <manualTask name="expedite robust users" id="bf24c852-53a2-44ba-9480-1a295bd070ff"/>
+    <manualTask name="onboard cross-unit methodologies" id="60da6957-c332-4b42-9928-c5320d546b92"/>
+    <parentsNode id="fc500fc0-7547-4d7a-8df3-8ad5e056ced7" sourceId="21e4e29e-a637-483e-9d29-56ce80db0665" targetId="304eb2af-283d-4e52-9161-b931b593d81b"/>
+    <parentsNode id="217f1386-c74f-4403-a89a-93897fe9df4f" sourceId="21e4e29e-a637-483e-9d29-56ce80db0665" targetId="e383b157-6877-4b94-bcc5-d72ce26f1123"/>
+    <parentsNode id="e0e38418-f59f-4ffa-a264-0de0d283ea33" sourceId="21e4e29e-a637-483e-9d29-56ce80db0665" targetId="579ccbb7-a7fd-473a-bb80-2d5d613480df"/>
+    <parentsNode id="0113c164-a53c-4099-946c-2a3aa603bc47" sourceId="21e4e29e-a637-483e-9d29-56ce80db0665" targetId="493db09b-a09f-4fac-8142-0847d2006a6c"/>
+    <parentsNode id="69025f2e-4b07-49f0-9071-6b929c8f4aac" sourceId="304eb2af-283d-4e52-9161-b931b593d81b" targetId="bca89233-a5fc-42a4-81bc-a7a04b8651f8"/>
+    <parentsNode id="ba2acdef-1514-49d0-978a-4150af2d12b4" sourceId="e383b157-6877-4b94-bcc5-d72ce26f1123" targetId="bae4195d-fb40-4eec-aecd-44081c97f43d"/>
+    <parentsNode id="1318c2f4-138a-4958-99af-a62f5fc42611" sourceId="579ccbb7-a7fd-473a-bb80-2d5d613480df" targetId="bf24c852-53a2-44ba-9480-1a295bd070ff"/>
+    <parentsNode id="eae8e154-4e34-4c55-98c8-738b504d74ab" sourceId="493db09b-a09f-4fac-8142-0847d2006a6c" targetId="60da6957-c332-4b42-9928-c5320d546b92"/>
+  </processTree>
+</ptml>

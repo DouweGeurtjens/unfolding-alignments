@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="b092ec13-bad1-4129-9f54-323f38ab5aae" root="2389b2ef-5c47-4b30-ab2e-c482891efa6c" id="b7f44189-8239-498e-a18c-494cc90444ab">
+    <xor name="" id="2389b2ef-5c47-4b30-ab2e-c482891efa6c"/>
+    <sequence name="" id="039b6467-8df5-4f41-97af-6b0032fcacdb"/>
+    <sequence name="" id="1dd72b31-e066-4d19-9886-900c8080d6b6"/>
+    <sequence name="" id="c7e30ed5-3949-4d13-a993-a8f5b695a6ab"/>
+    <sequence name="" id="f8d9b91b-0593-40bf-919f-0d38abb18618"/>
+    <sequence name="" id="40fa663a-1335-43f0-9241-f8e3fd0a12f6"/>
+    <manualTask name="develop value-added processes" id="0e034f2f-bf5f-431c-a19d-b81fc642fcc7"/>
+    <manualTask name="transform e-business scrums" id="ae0924c5-4378-4037-bee8-c7c21ac578cc"/>
+    <manualTask name="synthesize best-of-breed information" id="240a8365-ba2a-4042-8ac4-cfc39da24571"/>
+    <manualTask name="recaptiualize granular niche markets" id="916d4066-ed90-43c4-bb5d-4b7aa7f06cd8"/>
+    <manualTask name="optimize extensive schemas" id="85dc6c04-27df-40de-b88b-daec874bf7d9"/>
+    <parentsNode id="9a92ce65-25cb-4e72-b74a-efaa34767bcb" sourceId="2389b2ef-5c47-4b30-ab2e-c482891efa6c" targetId="039b6467-8df5-4f41-97af-6b0032fcacdb"/>
+    <parentsNode id="a086fff7-7203-4aaa-9c65-887c8a6a413c" sourceId="2389b2ef-5c47-4b30-ab2e-c482891efa6c" targetId="1dd72b31-e066-4d19-9886-900c8080d6b6"/>
+    <parentsNode id="facf0878-1c90-490f-99c4-fa123056632d" sourceId="2389b2ef-5c47-4b30-ab2e-c482891efa6c" targetId="c7e30ed5-3949-4d13-a993-a8f5b695a6ab"/>
+    <parentsNode id="ef75cec5-7269-4ec7-aada-973163df5ec5" sourceId="2389b2ef-5c47-4b30-ab2e-c482891efa6c" targetId="f8d9b91b-0593-40bf-919f-0d38abb18618"/>
+    <parentsNode id="b31e037e-2124-4530-9815-f5f03bc0a28b" sourceId="2389b2ef-5c47-4b30-ab2e-c482891efa6c" targetId="40fa663a-1335-43f0-9241-f8e3fd0a12f6"/>
+    <parentsNode id="b41c9c97-058f-44e1-b3d2-ef15b17a41c9" sourceId="039b6467-8df5-4f41-97af-6b0032fcacdb" targetId="0e034f2f-bf5f-431c-a19d-b81fc642fcc7"/>
+    <parentsNode id="cb21c108-00ce-4ee0-94c5-bbecb9e389a8" sourceId="1dd72b31-e066-4d19-9886-900c8080d6b6" targetId="ae0924c5-4378-4037-bee8-c7c21ac578cc"/>
+    <parentsNode id="403ece9b-6549-4a8a-86ee-ae61bc15f751" sourceId="c7e30ed5-3949-4d13-a993-a8f5b695a6ab" targetId="240a8365-ba2a-4042-8ac4-cfc39da24571"/>
+    <parentsNode id="68e84333-99a6-4c25-8b19-599a3b8e084c" sourceId="f8d9b91b-0593-40bf-919f-0d38abb18618" targetId="916d4066-ed90-43c4-bb5d-4b7aa7f06cd8"/>
+    <parentsNode id="9bea55b0-98f8-45d6-aa5c-fd5b7e77fc21" sourceId="40fa663a-1335-43f0-9241-f8e3fd0a12f6" targetId="85dc6c04-27df-40de-b88b-daec874bf7d9"/>
+  </processTree>
+</ptml>

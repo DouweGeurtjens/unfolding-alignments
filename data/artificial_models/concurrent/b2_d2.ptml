@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="fdd4e508-5e1b-4ecb-aa3d-c6199b710261" root="f154ca64-e46a-4f27-abe7-b147b5f28fa9" id="440caafd-eb66-4153-adba-b228bf6287b3">
+    <and name="" id="f154ca64-e46a-4f27-abe7-b147b5f28fa9"/>
+    <sequence name="" id="1b11afa3-1290-4896-99d2-9ae291ca6207"/>
+    <sequence name="" id="9c7586cd-eada-4727-9238-8b00cd7ae540"/>
+    <manualTask name="foster highly efficient scrums" id="3bf0f27d-e45a-471c-a025-f0a514602319"/>
+    <manualTask name="maintain user-centric innovation" id="5f67b072-08b9-4dcf-9db2-8b394603c214"/>
+    <manualTask name="underwhelm ubiquitous meta-services" id="21673886-c36f-4db6-b914-5e39eac913a8"/>
+    <manualTask name="supply client-based alignments" id="44672c7e-a40b-4ff3-b7c4-38e09e0bf439"/>
+    <parentsNode id="da663b84-0fde-407f-a761-e452392b2bba" sourceId="f154ca64-e46a-4f27-abe7-b147b5f28fa9" targetId="1b11afa3-1290-4896-99d2-9ae291ca6207"/>
+    <parentsNode id="c0c5afec-f816-4a86-9e41-eae720dcc0ce" sourceId="f154ca64-e46a-4f27-abe7-b147b5f28fa9" targetId="9c7586cd-eada-4727-9238-8b00cd7ae540"/>
+    <parentsNode id="8e2fcd70-508b-4af2-af2f-680f6d05482a" sourceId="1b11afa3-1290-4896-99d2-9ae291ca6207" targetId="3bf0f27d-e45a-471c-a025-f0a514602319"/>
+    <parentsNode id="2eae1276-843a-4403-b0c2-8aec7809233b" sourceId="1b11afa3-1290-4896-99d2-9ae291ca6207" targetId="5f67b072-08b9-4dcf-9db2-8b394603c214"/>
+    <parentsNode id="e124effb-4530-452b-9360-399aa8d76dbd" sourceId="9c7586cd-eada-4727-9238-8b00cd7ae540" targetId="21673886-c36f-4db6-b914-5e39eac913a8"/>
+    <parentsNode id="ba9a1ca2-9c88-4912-8399-7f73b88cc884" sourceId="9c7586cd-eada-4727-9238-8b00cd7ae540" targetId="44672c7e-a40b-4ff3-b7c4-38e09e0bf439"/>
+  </processTree>
+</ptml>

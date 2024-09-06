@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="acedf33c-f66a-4202-a48c-2e55c7e981e6" root="1bc49b72-2865-4709-adf8-d01feabea8bd" id="d026a8d1-c071-4fbb-93af-d57866d0a561">
+    <xorLoop name="" id="1bc49b72-2865-4709-adf8-d01feabea8bd"/>
+    <sequence name="" id="d89a27fd-1fa2-426d-9542-a16884e87d95"/>
+    <automaticTask name="" id="04877fdf-20f5-45b5-9ca5-957510ab480d"/>
+    <manualTask name="promote clicks-and-mortar users" id="a2012e35-9780-4dea-9d4e-de461e8ea2eb"/>
+    <manualTask name="grow user-centric e-tailers" id="46b1d549-0fba-457d-80ff-a193c6cfcf63"/>
+    <manualTask name="myocardinate magnetic channels" id="3e0e64b9-3ddb-4797-8188-b3350d8c2095"/>
+    <manualTask name="evisculate cloudified results" id="29b28c92-e05e-4d31-a686-f28ff88c9493"/>
+    <manualTask name="architect elastic schemas" id="037e1ecc-c106-4f90-af72-32706b8b1a2f"/>
+    <manualTask name="network compelling e-markets" id="dfc470ae-0cb9-4a9f-8c9c-b1937040a46f"/>
+    <manualTask name="morph user-centric adoption" id="3e95503f-5f6e-4880-989f-a742d5d3e56f"/>
+    <manualTask name="incubate empowered methodologies" id="fef81303-b590-4716-b3f5-1c35b099ce36"/>
+    <manualTask name="promote virtual synergy" id="82064e5e-95eb-4dd9-b9bd-4a9d53161bbf"/>
+    <manualTask name="myocardinate high-payoff content" id="bb604841-38e6-4079-8376-cfa68e521ad9"/>
+    <manualTask name="engage market positioning manufactured products" id="d5b4fe14-1c04-4e8d-978d-a61bc061dc2f"/>
+    <manualTask name="monetize synergistic methods of empowerment" id="5f4e6502-0e86-4002-aaf4-9d47f9c11d76"/>
+    <manualTask name="extend distinctive supply chains" id="e773e1be-87cb-40f4-b48d-4c7e361576b1"/>
+    <parentsNode id="234f4f46-7c0e-4c7d-b2a6-f861c74c41fa" sourceId="1bc49b72-2865-4709-adf8-d01feabea8bd" targetId="d89a27fd-1fa2-426d-9542-a16884e87d95"/>
+    <parentsNode id="b53b95e5-248d-4302-8745-893a6492e85e" sourceId="1bc49b72-2865-4709-adf8-d01feabea8bd" targetId="04877fdf-20f5-45b5-9ca5-957510ab480d"/>
+    <parentsNode id="f2d05503-55c6-4d3e-a4c3-0672b0fc73aa" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="a2012e35-9780-4dea-9d4e-de461e8ea2eb"/>
+    <parentsNode id="ceaf14c9-2579-465d-81f0-290af70f8645" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="46b1d549-0fba-457d-80ff-a193c6cfcf63"/>
+    <parentsNode id="c7040dd8-8f63-4954-9dd3-2f106d6815bf" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="3e0e64b9-3ddb-4797-8188-b3350d8c2095"/>
+    <parentsNode id="32a4439d-96ed-4ca3-8d91-7c75a15c6b3a" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="29b28c92-e05e-4d31-a686-f28ff88c9493"/>
+    <parentsNode id="c6000d1d-dee7-491e-93b2-bc827d6cabda" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="037e1ecc-c106-4f90-af72-32706b8b1a2f"/>
+    <parentsNode id="34793d96-77a3-474e-b16d-8ff5f3464e3b" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="dfc470ae-0cb9-4a9f-8c9c-b1937040a46f"/>
+    <parentsNode id="2b280660-d20d-4dd0-9e88-0d73617ba6c4" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="3e95503f-5f6e-4880-989f-a742d5d3e56f"/>
+    <parentsNode id="f4374bcf-905a-4f71-9ec7-0bad088a1fa2" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="fef81303-b590-4716-b3f5-1c35b099ce36"/>
+    <parentsNode id="3cbe7e1c-244f-4371-9cc0-c8f8acbc1a7f" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="82064e5e-95eb-4dd9-b9bd-4a9d53161bbf"/>
+    <parentsNode id="19d4ee8b-ff20-4a64-8290-3f40581207d9" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="bb604841-38e6-4079-8376-cfa68e521ad9"/>
+    <parentsNode id="bb1b61be-1252-404d-a7ed-9ae5f72ca380" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="d5b4fe14-1c04-4e8d-978d-a61bc061dc2f"/>
+    <parentsNode id="06be476a-1511-488a-8d80-9e2850284261" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="5f4e6502-0e86-4002-aaf4-9d47f9c11d76"/>
+    <parentsNode id="01e3ec0e-a44a-4d27-9794-88747cba5c0d" sourceId="d89a27fd-1fa2-426d-9542-a16884e87d95" targetId="e773e1be-87cb-40f4-b48d-4c7e361576b1"/>
+  </processTree>
+</ptml>

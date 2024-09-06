@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ptml>
+  <processTree name="0e35befa-be63-4af3-85a0-ae400c145cf0" root="6893c1a8-debf-4ecf-a0d1-b57f46ed7166" id="57045386-b24c-45fb-ade7-e7d54ef16a88">
+    <and name="" id="6893c1a8-debf-4ecf-a0d1-b57f46ed7166"/>
+    <sequence name="" id="9f321ea9-416d-4eaa-817a-29e34449cee6"/>
+    <sequence name="" id="4638876d-e71b-442c-a136-29a2825ffaac"/>
+    <manualTask name="transition robust value" id="2905de9c-90bf-491c-bbf1-4f2af2ed30d7"/>
+    <manualTask name="transform client-centric architectures" id="8f8d161e-d4a4-4130-bc04-5f9bafd51a9b"/>
+    <manualTask name="envisioneer bleeding-edge content" id="725e0b86-1869-4b93-9907-8f6a6acb4ccf"/>
+    <manualTask name="repurpose fungible e-markets" id="34a22904-ea7d-44a2-ba2f-a63f4028cece"/>
+    <manualTask name="fabricate bricks-and-clicks potentialities" id="7ecb92d1-a8ba-40e0-920e-7abcfdb177bf"/>
+    <manualTask name="network prospective markets" id="ed06bf4d-9a7e-4ef0-a6b2-35a025f9cc6b"/>
+    <parentsNode id="4de0b471-07cb-4024-a2ba-df3b5e618a29" sourceId="6893c1a8-debf-4ecf-a0d1-b57f46ed7166" targetId="9f321ea9-416d-4eaa-817a-29e34449cee6"/>
+    <parentsNode id="755a2ae7-47fc-406b-a52c-321f045e6a08" sourceId="6893c1a8-debf-4ecf-a0d1-b57f46ed7166" targetId="4638876d-e71b-442c-a136-29a2825ffaac"/>
+    <parentsNode id="761ae3e8-3652-4004-b2ad-2f7d09589c86" sourceId="9f321ea9-416d-4eaa-817a-29e34449cee6" targetId="2905de9c-90bf-491c-bbf1-4f2af2ed30d7"/>
+    <parentsNode id="ab4c02e3-2b90-4c70-8b22-3bdb1ebaf1b0" sourceId="9f321ea9-416d-4eaa-817a-29e34449cee6" targetId="8f8d161e-d4a4-4130-bc04-5f9bafd51a9b"/>
+    <parentsNode id="a1910b8e-e7bd-4837-b300-233ab14ab7d2" sourceId="9f321ea9-416d-4eaa-817a-29e34449cee6" targetId="725e0b86-1869-4b93-9907-8f6a6acb4ccf"/>
+    <parentsNode id="eeca4fff-5151-4c3d-b5df-30a894eded3c" sourceId="4638876d-e71b-442c-a136-29a2825ffaac" targetId="34a22904-ea7d-44a2-ba2f-a63f4028cece"/>
+    <parentsNode id="72ac3c70-4687-4846-a400-f6bb8c8c64f6" sourceId="4638876d-e71b-442c-a136-29a2825ffaac" targetId="7ecb92d1-a8ba-40e0-920e-7abcfdb177bf"/>
+    <parentsNode id="826a5758-1adc-4c73-bc24-719b8dfad18c" sourceId="4638876d-e71b-442c-a136-29a2825ffaac" targetId="ed06bf4d-9a7e-4ef0-a6b2-35a025f9cc6b"/>
+  </processTree>
+</ptml>
