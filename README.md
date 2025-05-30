@@ -1,3 +1,8 @@
+
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15552463.svg)](https://doi.org/10.5281/zenodo.15552463)
+
+
 ## Setup
 Make sure you have Python (3.12.0 recommended) and pip installed
 
