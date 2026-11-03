@@ -281,10 +281,11 @@ class BranchingProcess:
 
         # Sum the cost of the configuration and the cost of this transition, since this transition is not yet in the configuration
         g = configuration_cost + pe_cost
-        # Set to zero to get results without heuristic
-        h = pm4py.solve_marking_equation(self.underlying_net, im,
-                                         self.underlying_net.fm,
-                                         self.underlying_net.cost_function)
+        # Heuristics dont exactly work on PO traces and unbounded nets, so I turned them off.
+        # h = pm4py.solve_marking_equation(self.underlying_net, im,
+        #                                  self.underlying_net.fm,
+        #                                  self.underlying_net.cost_function)
+        h = 0
         if h == None:
             # No heuristic possible?
             print("Bad")
@@ -399,16 +400,25 @@ class BranchingProcess:
             if isinstance(node, Event):
                 net_transition = self.underlying_net.get_net_node_by_id(
                     node.net_transition_id)
-                new_transition = PetriNet.Transition(node.id,
-                                                     net_transition.label)
+                new_transition = PetriNet.Transition(
+                    node.id,
+                    net_transition.label,
+                    properties=net_transition.properties)
 
                 for input_condition in node.input_conditions:
+                    # Add input conditions
                     source = None
+
+                    # Check if already represented in return
                     for p in ret.places:
                         if p.name == input_condition.id:
                             source = p
                     if not source:
-                        source = PetriNet.Place(input_condition.id)
+                        net_place = self.underlying_net.get_net_node_by_id(
+                            input_condition.net_place_id)
+                        source = PetriNet.Place(
+                            input_condition.id,
+                            properties=net_place.properties)
 
                     ret.places.add(source)
                     add_arc_from_to(source, new_transition, ret)
@@ -425,7 +435,10 @@ class BranchingProcess:
                             target = p
 
                     if not target:
-                        target = PetriNet.Place(node.id)
+                        net_place = self.underlying_net.get_net_node_by_id(
+                            node.net_place_id)
+                        target = PetriNet.Place(
+                            node.id, properties=net_place.properties)
                         ret.places.add(target)
 
                     for t in ret.transitions:

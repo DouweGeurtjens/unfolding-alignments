@@ -1,5 +1,5 @@
 import pandas as pd
-from pm4py import PetriNet, Marking, discover_petri_net_inductive, view_petri_net
+from pm4py import PetriNet, Marking, discover_petri_net_inductive, view_petri_net, write_pnml
 from typing import TypeAlias, Callable
 import pm4py
 from enum import Enum
@@ -19,6 +19,7 @@ class MoveTypes(Enum):
     MODEL = 3
     MODEL_SILENT = 4
     DUMMY = 5
+    LOG_SILENT = 6
 
 
 class IDGenerator:
@@ -174,6 +175,67 @@ def construct_trace_net(trace, trace_name_key, activity_key):
     return net, Marking({place_map[0]: 1}), Marking({place_map[len(trace)]: 1})
 
 
+def construct_po_trace_net(trace, trace_name_key, activity_key):
+    net = PetriNet('trace net of %s' %
+                   trace.attributes[trace_name_key] if trace_name_key in
+                   trace.attributes else ' ')
+    p0 = PetriNet.Place('p_0')
+    net.places.add(p0)
+
+    # Group transitions by day, in order
+    groups = {}
+    for i in range(0, len(trace)):
+        t = PetriNet.Transition('t_' + trace[i][activity_key] + '_' + str(i),
+                                trace[i][activity_key])
+        net.transitions.add(t)
+        if trace[i]["Timestamp"].day in groups:
+            groups[trace[i]["Timestamp"].day].append(t)
+        else:
+            groups[trace[i]["Timestamp"].day] = [t]
+    keys = list(groups.keys())
+
+    place_map = {0: p0}
+    for i in range(0, len(keys)):
+        k = keys[i]
+        v = groups[k]
+        if len(v) == 1:
+            t = v[0]
+            p = PetriNet.Place('p_' + str(i + 1))
+            place_map[i + 1] = p
+            net.places.add(p)
+            # add_arc_from_to(place_map[i], t, net)
+            add_arc_from_to(t, p, net)
+            add_arc_from_to(place_map[i], t, net)
+        else:
+            # silent start
+            sts = PetriNet.Transition("tau_log_start" + str(i))
+            net.transitions.add(sts)
+            add_arc_from_to(place_map[i], sts, net)
+
+            #silent end
+            ste = PetriNet.Transition("tau_log_end" + str(i))
+            net.transitions.add(ste)
+            pste = PetriNet.Place("p_ste" + str(i))
+            place_map[i + 1] = pste
+            net.places.add(pste)
+            add_arc_from_to(ste, pste, net)
+
+            for j in range(0, len(v)):
+                t = v[j]
+
+                pin = PetriNet.Place(f'p_in' + str(i + 1) + '_' + str(j + 1))
+                net.places.add(pin)
+                add_arc_from_to(sts, pin, net)
+                add_arc_from_to(pin, t, net)
+
+                pout = PetriNet.Place(f'p_out' + str(i + 1) + '_' + str(j + 1))
+                net.places.add(pout)
+                add_arc_from_to(t, pout, net)
+                add_arc_from_to(pout, ste, net)
+
+    return net, Marking({p0: 1}), Marking({place_map[len(keys)]: 1})
+
+
 def copy_into(source_net, target_net, upper, skip):
     t_map = {}
     p_map = {}
@@ -235,7 +297,17 @@ def construct_synchronous_product(model_net: PetriNet, model_net_im: Marking,
         else:
             t.properties[NetProperties.MOVE_TYPE.name] = MoveTypes.MODEL.name
     for t in trace_net.transitions:
-        t.properties[NetProperties.MOVE_TYPE.name] = MoveTypes.LOG.name
+        if t.label is None:
+            t.properties[
+                NetProperties.MOVE_TYPE.name] = MoveTypes.LOG_SILENT.name
+        else:
+            t.properties[NetProperties.MOVE_TYPE.name] = MoveTypes.LOG.name
+
+    for p in model_net.places:
+        p.properties[NetProperties.MOVE_TYPE.name] = MoveTypes.MODEL.name
+
+    for p in trace_net.places:
+        p.properties[NetProperties.MOVE_TYPE.name] = MoveTypes.LOG.name
 
     t1_map, p1_map = copy_into(model_net, sync_net, False, ">>")
     t2_map, p2_map = copy_into(trace_net, sync_net, True, ">>")
@@ -243,7 +315,11 @@ def construct_synchronous_product(model_net: PetriNet, model_net_im: Marking,
     # Then, create the sync moves
     for t1 in model_net.transitions:
         for t2 in trace_net.transitions:
-            if t1.label == t2.label:
+            if t1.label == t2.label and (
+                    t1.properties[NetProperties.MOVE_TYPE.name]
+                    != MoveTypes.MODEL_SILENT.name
+                    or t2.properties[NetProperties.MOVE_TYPE.name]
+                    != MoveTypes.LOG_SILENT.name):
                 sync = PetriNet.Transition((t1.name, t2.name),
                                            (t1.label, t2.label),
                                            properties={
@@ -278,12 +354,13 @@ def construct_synchronous_product(model_net: PetriNet, model_net_im: Marking,
         combined_fm[p2_map[p]] = trace_net_fm[p]
 
     dummy_start_place = PetriNet.Place(
-        ("dummy_start_place", "dummy_start_place"))
+        ("dummy_start_place", "dummy_start_place"),
+        properties={NetProperties.MOVE_TYPE.name: MoveTypes.DUMMY.name})
     sync_net.places.add(dummy_start_place)
 
     dummy_start_transition = PetriNet.Transition(
         ("dummy_start_transition", "dummy start_transition"),
-        ("dummy_start_transition", "dummy start_transition"),
+        ("START", "START"),
         properties={NetProperties.MOVE_TYPE.name: MoveTypes.DUMMY.name})
     sync_net.transitions.add(dummy_start_transition)
 
@@ -293,12 +370,13 @@ def construct_synchronous_product(model_net: PetriNet, model_net_im: Marking,
         add_arc_from_to(dummy_start_transition, p, sync_net)
 
     dummy_end_transition = PetriNet.Transition(
-        ("dummy_end_transition", "dummy_end_transition_1"),
-        ("dummy_end_transition", "dummy_end_transition_1"),
+        ("dummy_end_transition", "dummy_end_transition_1"), ("END", "END"),
         properties={NetProperties.MOVE_TYPE.name: MoveTypes.DUMMY.name})
     sync_net.transitions.add(dummy_end_transition)
 
-    dummy_end_place = PetriNet.Place(("dummy_end_place", "dummy_end_place_1"))
+    dummy_end_place = PetriNet.Place(
+        ("dummy_end_place", "dummy_end_place_1"),
+        properties={NetProperties.MOVE_TYPE.name: MoveTypes.DUMMY.name})
     sync_net.places.add(dummy_end_place)
 
     add_arc_from_to(dummy_end_transition, dummy_end_place, sync_net)
@@ -325,8 +403,59 @@ def construct_synchronous_product(model_net: PetriNet, model_net_im: Marking,
         if t.properties[
                 NetProperties.MOVE_TYPE.name] == MoveTypes.MODEL_SILENT.name:
             cost_mapping[t] = 1
+        if t.properties[
+                NetProperties.MOVE_TYPE.name] == MoveTypes.LOG_SILENT.name:
+            cost_mapping[t] = 1
 
     return sync_net, sync_im, sync_fm, cost_mapping
+
+
+def decorate_net(n: PetriNet, color: bool = True):
+    # Will only work for nets with move type properties
+    dec = {}
+    for t in n.transitions:
+        dec[t] = {}
+        # Log skip
+        if t.properties[NetProperties.MOVE_TYPE.name] == MoveTypes.LOG.name:
+            dec[t]["label"] = t.label[0] + ", >>"
+            if color:
+                dec[t]["color"] = "lightgoldenrod"
+        # Model skip
+        elif t.properties[
+                NetProperties.MOVE_TYPE.name] == MoveTypes.MODEL.name:
+            dec[t]["label"] = ">>, " + t.label[1]
+            if color:
+                dec[t]["color"] = "lightblue"
+        # Silent
+        elif t.properties[
+                NetProperties.MOVE_TYPE.
+                name] == MoveTypes.MODEL_SILENT.name or t.properties[
+                    NetProperties.MOVE_TYPE.name] == MoveTypes.LOG_SILENT.name:
+            # Workaround to not need to modify underlying label
+            dec[t]["label"] = " "
+            if color:
+                dec[t]["color"] = "darkgray"
+        else:
+            dec[t]["label"] = t.label[0]
+            if color:
+                dec[t]["color"] = "lightgreen"
+
+    for p in n.places:
+        dec[p] = {}
+        # Log skip
+        if p.properties[NetProperties.MOVE_TYPE.name] == MoveTypes.LOG.name:
+            if color:
+                dec[p]["color"] = "lightgoldenrod"
+        # Model skip
+        elif p.properties[
+                NetProperties.MOVE_TYPE.name] == MoveTypes.MODEL.name:
+            if color:
+                dec[p]["color"] = "lightblue"
+        else:
+            if color:
+                dec[p]["color"] = "lightgreen"
+
+    return dec
 
 
 def import_from_tpn(path):
@@ -369,165 +498,4 @@ def import_from_tpn(path):
 
 
 if __name__ == "__main__":
-    n = PetriNet()
-    pi = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(pi)
-
-    make_booking = PetriNet.Transition(IDGEN.generate_id(), "Make booking")
-    n.transitions.add(make_booking)
-
-    add_arc_from_to(pi, make_booking, n)
-
-    p0 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p0)
-
-    add_arc_from_to(make_booking, p0, n)
-
-    # Branch use previous
-    use_previous_data = PetriNet.Transition(IDGEN.generate_id(),
-                                            "Use previous data")
-    n.transitions.add(use_previous_data)
-    add_arc_from_to(p0, use_previous_data, n)
-
-    p5 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p5)
-    add_arc_from_to(use_previous_data, p5, n)
-
-    await_contract = PetriNet.Transition(IDGEN.generate_id(), "Await contract")
-    n.transitions.add(await_contract)
-    add_arc_from_to(p5, await_contract, n)
-
-    p6 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p6)
-    add_arc_from_to(await_contract, p6, n)
-
-    countersign = PetriNet.Transition(IDGEN.generate_id(), "Countersign")
-    n.transitions.add(countersign)
-    add_arc_from_to(p6, countersign, n)
-
-    pf = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(pf)
-    add_arc_from_to(countersign, pf, n)
-
-    # Branch use previous repeat
-    retract_data = PetriNet.Transition(IDGEN.generate_id(), "Retract data")
-    n.transitions.add(retract_data)
-    add_arc_from_to(p5, retract_data, n)
-
-    p0_1 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p0_1)
-    add_arc_from_to(retract_data, p0_1, n)
-
-    # Branch use previous repeat use previous
-    use_previous_data_1 = PetriNet.Transition(IDGEN.generate_id(),
-                                              "Use previous data")
-    n.transitions.add(use_previous_data_1)
-    add_arc_from_to(p0_1, use_previous_data_1, n)
-
-    p5_2 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p5_2)
-    add_arc_from_to(use_previous_data_1, p5_2, n)
-
-    # Branch use previous repeat concurrent
-    tau_3 = PetriNet.Transition(IDGEN.generate_id())
-    n.transitions.add(tau_3)
-    add_arc_from_to(p0_1, tau_3, n)
-
-    p1_1 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p1_1)
-    add_arc_from_to(tau_3, p1_1, n)
-
-    p2_1 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p2_1)
-    add_arc_from_to(tau_3, p2_1, n)
-
-    # Branch concurrent
-    tau_1 = PetriNet.Transition(IDGEN.generate_id())
-    n.transitions.add(tau_1)
-    add_arc_from_to(p0, tau_1, n)
-
-    p1 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p1)
-    add_arc_from_to(tau_1, p1, n)
-
-    p2 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p2)
-    add_arc_from_to(tau_1, p2, n)
-
-    submit_payment_details = PetriNet.Transition(IDGEN.generate_id(),
-                                                 "Submit payment details")
-    n.transitions.add(submit_payment_details)
-    add_arc_from_to(p2, submit_payment_details, n)
-
-    submit_proof_of_enrollment = PetriNet.Transition(
-        IDGEN.generate_id(), "Submit proof of enrollment")
-    n.transitions.add(submit_proof_of_enrollment)
-    add_arc_from_to(p1, submit_proof_of_enrollment, n)
-
-    p3 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p3)
-    add_arc_from_to(submit_payment_details, p3, n)
-
-    p4 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p4)
-    add_arc_from_to(submit_proof_of_enrollment, p4, n)
-
-    tau_2 = PetriNet.Transition(IDGEN.generate_id())
-    n.transitions.add(tau_2)
-    add_arc_from_to(p3, tau_2, n)
-    add_arc_from_to(p4, tau_2, n)
-
-    p5_1 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p5_1)
-    add_arc_from_to(tau_2, p5_1, n)
-
-    await_contract_1 = PetriNet.Transition(IDGEN.generate_id(),
-                                           "Await contract")
-    n.transitions.add(await_contract_1)
-    add_arc_from_to(p5_1, await_contract_1, n)
-
-    p6_1 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p6_1)
-    add_arc_from_to(await_contract_1, p6_1, n)
-
-    countersign_1 = PetriNet.Transition(IDGEN.generate_id(), "Countersign")
-    n.transitions.add(countersign_1)
-    add_arc_from_to(p6_1, countersign_1, n)
-
-    pf_1 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(pf_1)
-    add_arc_from_to(countersign_1, pf_1, n)
-
-    # Branch concurrent repeat
-    retract_data_1 = PetriNet.Transition(IDGEN.generate_id(), "Retract data")
-    n.transitions.add(retract_data_1)
-    add_arc_from_to(p5_1, retract_data_1, n)
-
-    p0_2 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p0_2)
-    add_arc_from_to(retract_data_1, p0_2, n)
-
-    # Branch concurrent repeat use previous
-    use_previous_data_2 = PetriNet.Transition(IDGEN.generate_id(),
-                                              "Use previous data")
-    n.transitions.add(use_previous_data_2)
-    add_arc_from_to(p0_2, use_previous_data_2, n)
-
-    p5_3 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p5_3)
-    add_arc_from_to(use_previous_data_2, p5_3, n)
-
-    # Branch concurrent repeat concurrent
-    tau_4 = PetriNet.Transition(IDGEN.generate_id())
-    n.transitions.add(tau_4)
-    add_arc_from_to(p0_2, tau_4, n)
-
-    p1_2 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p1_2)
-    add_arc_from_to(tau_4, p1_2, n)
-
-    p2_2 = PetriNet.Place(IDGEN.generate_id())
-    n.places.add(p2_2)
-    add_arc_from_to(tau_4, p2_2, n)
-
-    view_petri_net(n)
+    pass

@@ -1391,41 +1391,5 @@ def itl_streaming():
             wf.write(rstr)
 
 
-def example():
-    df = pd.read_csv("data/testnet_no_cycles.csv", sep=",")
-    df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-    df = format_dataframe(df,
-                          activity_key="Activity",
-                          case_id="CaseID",
-                          timestamp_key="Timestamp")
-    mn, mi, mf = pm4py.discover_petri_net_inductive(df,
-                                                    activity_key="Activity",
-                                                    case_id_key="CaseID",
-                                                    timestamp_key="Timestamp")
-    el = convert_to_event_log(df)
-    trace = el[0]
-    rm = None
-    for e in trace:
-        if e["Activity"] == "Submit proof of enrollment":
-            rm = e
-    trace._list.remove(rm)
-    tn, ti, tf = construct_trace_net(el[0], "Activity", "Activity")
-    sp, spi, spf, cf = construct_synchronous_product(mn, mi, mf, tn, ti, tf)
-    view_petri_net(sp, spi, spf)
-    sync_net_extended = ExtendedSyncNet(sp, spi, spf, cf)
-
-    bp = BranchingProcessStandard(sync_net_extended)
-
-    bp.initialise_from_initial_marking()
-    alignment, cost = bp.astar()
-    nodes = set()
-    for _, v in bp.conditions.items():
-        nodes.update(v)
-    for _, v in bp.events.items():
-        nodes.update(v)
-    n = bp.convert_nodes_to_net(nodes)
-    view_petri_net(n)
-
-
 if __name__ == "__main__":
     pass

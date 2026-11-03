@@ -34,12 +34,24 @@ class BranchingProcessStandard(BranchingProcess):
                 astar_item.pe, astar_item.g)
 
             # We allow only a single place as final marking
+
             if len(added_conditions) == 1:
-                if self.underlying_net.get_net_node_by_id(
-                        list(added_conditions)
-                    [0].net_place_id) in self.underlying_net.fm:
-                    # print(f"Found alignment with cost {astar_item.g}")
-                    return added_conditions, astar_item.g
+                underlying_place = self.underlying_net.get_net_node_by_id(
+                    list(added_conditions)[0].net_place_id)
+                if underlying_place in self.underlying_net.fm:
+                    conf = self.get_full_configuration_from_marking(
+                        added_conditions)
+                    full_marking = self.fire_configuration(conf)
+                    fm_id_set = {
+                        list(self.underlying_net.fm.keys())[0].properties[
+                            NetProperties.ID.name]
+                    }
+                    same = fm_id_set == full_marking.keys()
+                    if same:
+                        # print(f"Found alignment with cost {astar_item.g}")
+                        return added_conditions, astar_item.g
+                    else:
+                        print("FM REACHED BUT WITH DANGLING TOKENS")
 
             # Compute the  new  PE
             transition_ids_to_check = set()

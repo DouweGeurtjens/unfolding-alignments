@@ -23,6 +23,8 @@ import statistics
 
 from sklearn.base import BaseEstimator, RegressorMixin
 
+fontsize = 34
+
 
 class SMWrapper(BaseEstimator, RegressorMixin):
     """ A universal sklearn-style wrapper for statsmodels regressors """
@@ -542,10 +544,9 @@ def e1(filepath):
 
 
 def plot_2d(x, y, title):
-    fig = plt.figure()
+    fig, ax = plt.subplots(figsize=(10, 8), constrained_layout=True)
     fig.suptitle(title)
 
-    ax = fig.add_subplot()
     ax.set_xlabel(x)
     ax.set_ylabel(y)
 
@@ -553,18 +554,20 @@ def plot_2d(x, y, title):
 
 
 def plot_3d(x, y, z, title):
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8, 6))
     fig.suptitle(title)
 
     ax = fig.add_subplot(projection='3d')
-    ax.set_xlabel(x)
-    ax.set_ylabel(y)
-    ax.set_zlabel(z)
+    ax.set_xlabel(x, labelpad=20)
+    ax.set_ylabel(y, labelpad=20)
+    ax.set_zlabel(z, labelpad=25)
 
     return fig, ax
 
 
 def e2_figures(dir_names_color_title_pairs, subfolder_name):
+
+    plt.rcParams.update({'font.size': fontsize})
     breadth = "breadth"
     depth = "depth"
     v = "visited states"
@@ -810,63 +813,113 @@ def e2_figures(dir_names_color_title_pairs, subfolder_name):
         l_sp_v_start_deviations.set_label(title)
         l_sp_v_halfway_deviations.set_label(title)
         l_sp_v_end_deviations.set_label(title)
-        fig_v_no.savefig(f"figures/stage_one/{subfolder_name}/{title}_3d_v_no")
-        fig_t_no.savefig(f"figures/stage_one/{subfolder_name}/{title}_3d_t_no")
-        fig_v_start.savefig(
-            f"figures/stage_one/{subfolder_name}/{title}_3d_v_start")
-        fig_t_start.savefig(
-            f"figures/stage_one/{subfolder_name}/{title}_3d_t_start")
-        fig_v_halfway.savefig(
-            f"figures/stage_one/{subfolder_name}/{title}_3d_v_halfway")
-        fig_t_halfway.savefig(
-            f"figures/stage_one/{subfolder_name}/{title}_3d_t_halfway")
-        fig_v_end.savefig(
-            f"figures/stage_one/{subfolder_name}/{title}_3d_v_end")
-        fig_t_end.savefig(
-            f"figures/stage_one/{subfolder_name}/{title}_3d_t_end")
 
-    fig_vt_no_deviations.legend()
-    fig_vt_start_deviations.legend()
-    fig_vt_halfway_deviations.legend()
-    fig_vt_end_deviations.legend()
-    fig_tl_v_no_deviations.legend()
-    fig_tl_v_start_deviations.legend()
-    fig_tl_v_halfway_deviations.legend()
-    fig_tl_v_end_deviations.legend()
-    fig_sp_v_no_deviations.legend()
-    fig_sp_v_start_deviations.legend()
-    fig_sp_v_halfway_deviations.legend()
-    fig_sp_v_end_deviations.legend()
+        # fig_v_no.tight_layout(pad=1)
+        # fig_t_no.tight_layout(pad=1)
+        # fig_v_start.tight_layout(pad=1)
+        # fig_t_start.tight_layout(pad=1)
+        # fig_v_halfway.tight_layout(pad=1)
+        # fig_t_halfway.tight_layout(pad=1)
+        # fig_v_end.tight_layout(pad=1)
+        # fig_t_end.tight_layout(pad=1)
+        # fig_v_no.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_v_no", )
+        # fig_t_no.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_t_no", )
+        # fig_v_start.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_v_start", )
+        # fig_t_start.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_t_start", )
+        # fig_v_halfway.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_v_halfway", )
+        # fig_t_halfway.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_t_halfway", )
+        # fig_v_end.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_v_end", )
+        # fig_t_end.savefig(
+        #     f"figures/stage_one/{subfolder_name}/{title}_3d_t_end", )
 
-    fig_vt_no_deviations.savefig(f"figures/stage_one/{subfolder_name}/v_t_no")
+    # fig_vt_no_deviations.legend(prop={'size': 12},
+    #                             bbox_to_anchor=(1, 1),
+    #                             loc='upper left')
+    # fig_vt_start_deviations.legend(prop={'size': 12},
+    #                                bbox_to_anchor=(1, 1),
+    #                                loc='upper left')
+    # fig_vt_halfway_deviations.legend(prop={'size': 12},
+    #                                  bbox_to_anchor=(1, 1),
+    #                                  loc='upper left')
+    # fig_vt_end_deviations.legend(prop={'size': 12},
+    #                              bbox_to_anchor=(1, 1),
+    #                              loc='upper left')
+    # fig_tl_v_no_deviations.legend(prop={'size': 12},
+    #                               bbox_to_anchor=(1, 1),
+    #                               loc='upper left')
+    # fig_tl_v_start_deviations.legend(prop={'size': 12},
+    #                                  bbox_to_anchor=(1, 1),
+    #                                  loc='upper left')
+    # fig_tl_v_halfway_deviations.legend(prop={'size': 12},
+    #                                    bbox_to_anchor=(1, 1),
+    #                                    loc='upper left')
+    # fig_tl_v_end_deviations.legend(prop={'size': 12},
+    #                                bbox_to_anchor=(1, 1),
+    #                                loc='upper left')
+    # fig_sp_v_no_deviations.legend(prop={'size': 12},
+    #                               bbox_to_anchor=(1, 1),
+    #                               loc='upper left')
+    # fig_sp_v_start_deviations.legend(prop={'size': 12},
+    #                                  bbox_to_anchor=(1, 1),
+    #                                  loc='upper left')
+    # fig_sp_v_halfway_deviations.legend(prop={'size': 12},
+    #                                    bbox_to_anchor=(1, 1),
+    #                                    loc='upper left')
+    # fig_sp_v_end_deviations.legend(prop={'size': 12},
+    #                                bbox_to_anchor=(1, 1),
+    #                                loc='upper left')
+
+    # fig_vt_no_deviations.tight_layout()
+    # fig_vt_start_deviations.tight_layout()
+    # fig_vt_halfway_deviations.tight_layout()
+    # fig_vt_end_deviations.tight_layout()
+    # fig_tl_v_no_deviations.tight_layout()
+    # fig_tl_v_start_deviations.tight_layout()
+    # fig_tl_v_halfway_deviations.tight_layout()
+    # fig_tl_v_end_deviations.tight_layout()
+    # fig_sp_v_no_deviations.tight_layout()
+    # fig_sp_v_start_deviations.tight_layout()
+    # fig_sp_v_halfway_deviations.tight_layout()
+    # fig_sp_v_end_deviations.tight_layout()
+    fig_vt_no_deviations.savefig(
+        f"figures/stage_one/{subfolder_name}/v_t_no", )
     fig_vt_start_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/v_t_start")
+        f"figures/stage_one/{subfolder_name}/v_t_start", )
     fig_vt_halfway_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/v_t_halfway")
+        f"figures/stage_one/{subfolder_name}/v_t_halfway", )
     fig_vt_end_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/v_t_end")
+        f"figures/stage_one/{subfolder_name}/v_t_end", )
 
     fig_tl_v_no_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/tl_v_no")
+        f"figures/stage_one/{subfolder_name}/tl_v_no", )
     fig_tl_v_start_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/tl_v_start")
+        f"figures/stage_one/{subfolder_name}/tl_v_start", )
     fig_tl_v_halfway_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/tl_v_halfway")
+        f"figures/stage_one/{subfolder_name}/tl_v_halfway", )
     fig_tl_v_end_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/tl_v_end")
+        f"figures/stage_one/{subfolder_name}/tl_v_end", )
 
     fig_sp_v_no_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/sp_v_no")
+        f"figures/stage_one/{subfolder_name}/sp_v_no", )
     fig_sp_v_start_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/sp_v_start")
+        f"figures/stage_one/{subfolder_name}/sp_v_start", )
     fig_sp_v_halfway_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/sp_v_halfway")
+        f"figures/stage_one/{subfolder_name}/sp_v_halfway", )
     fig_sp_v_end_deviations.savefig(
-        f"figures/stage_one/{subfolder_name}/sp_v_end")
+        f"figures/stage_one/{subfolder_name}/sp_v_end", )
     # plt.show()
 
 
 def e3_figures():
+
+    plt.rcParams.update({'font.size': fontsize})
     res_file_path_color_title_pairs = [
         ("results/sepsis/sepsis_05.json", "#2f4f4f", "SP"),
         ("results/bpic17/bpic17_02.json", "#2e8b57", "BPIC17"),
@@ -967,6 +1020,10 @@ def e3_figures():
         if n[0] > 0:
             patches[0].set_facecolor("red")
 
+        # fig_unf_t_bar.tight_layout()
+        # fig_astar_t_bar.tight_layout()
+        # fig_dijkstra_t_bar.tight_layout()
+
         fig_unf_t_bar.savefig(f"figures/stage_two/{title}_{unf}_t_bar")
         fig_astar_t_bar.savefig(f"figures/stage_two/{title}_{astar}_t_bar")
         fig_dijkstra_t_bar.savefig(
@@ -1008,31 +1065,67 @@ def e3_figures():
                                 unf_elapsed_time,
                                 c=color,
                                 label=title)
-        fig_unf_v_t_per.savefig(f"figures/stage_two/{title}_{unf}_v_t")
-        fig_unf_sp_v_per.savefig(f"figures/stage_two/{title}_{unf}_sp_v")
-        fig_unf_sp_t_per.savefig(f"figures/stage_two/{title}_{unf}_sp_t")
 
-    fig_unf_v_t.legend()
-    fig_unf_q_t.legend()
-    fig_unf_tl_v.legend()
-    fig_unf_sp_v.legend()
-    fig_unf_sp_t.legend()
-    fig_unf_sp_tlog.legend()
-    fig_unf_vlog_tlog.legend()
-    fig_unf_qlog_tlog.legend()
-    fig_unf_fit_t.legend()
-    fig_unf_cost_t.legend()
+        # fig_unf_v_t_per.tight_layout()
+        # fig_unf_sp_v_per.tight_layout()
+        # fig_unf_sp_t_per.tight_layout()
 
-    fig_unf_v_t.savefig(f"figures/stage_two/{unf}_v_t")
-    fig_unf_q_t.savefig(f"figures/stage_two/{unf}_q_t")
-    fig_unf_tl_v.savefig(f"figures/stage_two/{unf}_tl_v")
-    fig_unf_sp_v.savefig(f"figures/stage_two/{unf}_sp_v")
-    fig_unf_sp_t.savefig(f"figures/stage_two/{unf}_sp_t")
-    fig_unf_sp_tlog.savefig(f"figures/stage_two/{unf}_sp_tlog")
-    fig_unf_vlog_tlog.savefig(f"figures/stage_two/{unf}_vlog_tlog")
-    fig_unf_qlog_tlog.savefig(f"figures/stage_two/{unf}_qlog_tlog")
-    fig_unf_fit_t.savefig(f"figures/stage_two/{unf}_fit_t")
-    fig_unf_cost_t.savefig(f"figures/stage_two/{unf}_cost_t")
+        fig_unf_v_t_per.savefig(f"figures/stage_two/{title}_{unf}_v_t", )
+        fig_unf_sp_v_per.savefig(f"figures/stage_two/{title}_{unf}_sp_v", )
+        fig_unf_sp_t_per.savefig(f"figures/stage_two/{title}_{unf}_sp_t", )
+
+    # fig_unf_v_t.legend(prop={'size': 12},
+    #                    bbox_to_anchor=(1, 1),
+    #                    loc='upper left')
+    # fig_unf_q_t.legend(prop={'size': 12},
+    #                    bbox_to_anchor=(1, 1),
+    #                    loc='upper left')
+    # fig_unf_tl_v.legend(prop={'size': 12},
+    #                     bbox_to_anchor=(1, 1),
+    #                     loc='upper left')
+    # fig_unf_sp_v.legend(prop={'size': 12},
+    #                     bbox_to_anchor=(1, 1),
+    #                     loc='upper left')
+    # fig_unf_sp_t.legend(prop={'size': 12},
+    #                     bbox_to_anchor=(1, 1),
+    #                     loc='upper left')
+    # fig_unf_sp_tlog.legend(prop={'size': 12},
+    #                        bbox_to_anchor=(1, 1),
+    #                        loc='upper left')
+    # fig_unf_vlog_tlog.legend(prop={'size': 12},
+    #                          bbox_to_anchor=(1, 1),
+    #                          loc='upper left')
+    # fig_unf_qlog_tlog.legend(prop={'size': 12},
+    #                          bbox_to_anchor=(1, 1),
+    #                          loc='upper left')
+    # fig_unf_fit_t.legend(prop={'size': 12},
+    #                      bbox_to_anchor=(1, 1),
+    #                      loc='upper left')
+    # fig_unf_cost_t.legend(prop={'size': 12},
+    #                       bbox_to_anchor=(1, 1),
+    #                       loc='upper left')
+
+    # fig_unf_v_t.tight_layout()
+    # fig_unf_q_t.tight_layout()
+    # fig_unf_tl_v.tight_layout()
+    # fig_unf_sp_v.tight_layout()
+    # fig_unf_sp_t.tight_layout()
+    # fig_unf_sp_tlog.tight_layout()
+    # fig_unf_vlog_tlog.tight_layout()
+    # fig_unf_qlog_tlog.tight_layout()
+    # fig_unf_fit_t.tight_layout()
+    # fig_unf_cost_t.tight_layout()
+
+    fig_unf_v_t.savefig(f"figures/stage_two/{unf}_v_t", )
+    fig_unf_q_t.savefig(f"figures/stage_two/{unf}_q_t", )
+    fig_unf_tl_v.savefig(f"figures/stage_two/{unf}_tl_v", )
+    fig_unf_sp_v.savefig(f"figures/stage_two/{unf}_sp_v", )
+    fig_unf_sp_t.savefig(f"figures/stage_two/{unf}_sp_t", )
+    fig_unf_sp_tlog.savefig(f"figures/stage_two/{unf}_sp_tlog", )
+    fig_unf_vlog_tlog.savefig(f"figures/stage_two/{unf}_vlog_tlog", )
+    fig_unf_qlog_tlog.savefig(f"figures/stage_two/{unf}_qlog_tlog", )
+    fig_unf_fit_t.savefig(f"figures/stage_two/{unf}_fit_t", )
+    fig_unf_cost_t.savefig(f"figures/stage_two/{unf}_cost_t", )
     # plt.show()
 
 
@@ -1148,12 +1241,15 @@ def e3_table():
             unf_table["min_trace_length"] = min(unf_tl)
             unf_table["max_trace_length"] = max(unf_tl)
             unf_table["avg_unf_q"] = sum(unf_q) / len(unf_q)
+            unf_table["median_unf_q"] = float(statistics.median(unf_q))
             unf_table["min_unf_q"] = min(unf_q)
             unf_table["max_unf_q"] = max(unf_q)
             unf_table["avg_unf_v"] = sum(unf_v) / len(unf_v)
+            unf_table["median_unf_v"] = float(statistics.median(unf_v))
             unf_table["min_unf_v"] = min(unf_v)
             unf_table["max_unf_v"] = max(unf_v)
             unf_table["avg_unf_t"] = sum(unf_t) / len(unf_t)
+            unf_table["median_unf_t"] = float(statistics.median(unf_t))
             unf_table["min_unf_t"] = min(unf_t)
             unf_table["max_unf_t"] = max(unf_t)
         if len(astar_t) > 0:
@@ -1163,12 +1259,15 @@ def e3_table():
             astar_table["min_trace_length"] = min(astar_tl)
             astar_table["max_trace_length"] = max(astar_tl)
             astar_table["avg_astar_q"] = sum(astar_q) / len(astar_q)
+            astar_table["median_astar_q"] = float(statistics.median(astar_q))
             astar_table["min_astar_q"] = min(astar_q)
             astar_table["max_astar_q"] = max(astar_q)
             astar_table["avg_astar_v"] = sum(astar_v) / len(astar_v)
+            astar_table["median_astar_v"] = float(statistics.median(astar_v))
             astar_table["min_astar_v"] = min(astar_v)
             astar_table["max_astar_v"] = max(astar_v)
             astar_table["avg_astar_t"] = sum(astar_t) / len(astar_t)
+            astar_table["median_astar_t"] = float(statistics.median(astar_t))
             astar_table["min_astar_t"] = min(astar_t)
             astar_table["max_astar_t"] = max(astar_t)
         if len(dijkstra_t) > 0:
@@ -1180,14 +1279,20 @@ def e3_table():
             dijkstra_table["max_trace_length"] = max(dijkstra_tl)
             dijkstra_table["avg_dijkstra_q"] = sum(dijkstra_q) / len(
                 dijkstra_q)
+            dijkstra_table["median_dijkstra_q"] = float(
+                statistics.median(dijkstra_q))
             dijkstra_table["min_dijkstra_q"] = min(dijkstra_q)
             dijkstra_table["max_dijkstra_q"] = max(dijkstra_q)
             dijkstra_table["avg_dijkstra_v"] = sum(dijkstra_v) / len(
                 dijkstra_v)
+            dijkstra_table["median_dijkstra_v"] = float(
+                statistics.median(dijkstra_v))
             dijkstra_table["min_dijkstra_v"] = min(dijkstra_v)
             dijkstra_table["max_dijkstra_v"] = max(dijkstra_v)
             dijkstra_table["avg_dijkstra_t"] = sum(dijkstra_t) / len(
                 dijkstra_t)
+            dijkstra_table["median_dijkstra_t"] = float(
+                statistics.median(dijkstra_t))
             dijkstra_table["min_dijkstra_t"] = min(dijkstra_t)
             dijkstra_table["max_dijkstra_t"] = max(dijkstra_t)
 
@@ -2154,29 +2259,167 @@ def add_metrics():
             wf.write(rstr)
 
 
-if __name__ == "__main__":
-    # No heuristics stage one
-    dir_name_color_title_pairs_no_heuristic = [
-        (CONCURRENT_RESULT_DIR_NO_HEURISTIC, CONCURRENT_MODEL_DIR, "pink",
-         "C"),
-        (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR_NO_HEURISTIC,
-         CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
-        (EXCLUSIVE_RESULT_DIR_NO_HEURISTIC, EXCLUSIVE_MODEL_DIR, "turquoise",
-         "E"),
-        (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR_NO_HEURISTIC,
-         EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
-        (LOOP_RESULT_DIR_NO_HEURISTIC, LOOP_MODEL_DIR, "green", "L")
+def paper():
+    res_file_path_title_pairs = [
+        ("results/sepsis/sepsis_05.json", "SP"),
+        ("results/bpic17/bpic17_02.json", "BPIC17"),
+        ("results/bpic19/bpic19_02.json", "BPIC19"),
+        ("results/inthelarge/prAm6.json", "ITL prAm6"),
+        ("results/inthelarge/prBm6.json", "ITL prBm6"),
+        ("results/inthelarge/prCm6.json", "ITL prCm6"),
+        ("results/inthelarge/prDm6.json", "ITL prDm6"),
+        ("results/inthelarge/prEm6.json", "ITL prEm6"),
+        ("results/inthelarge/prFm6.json", "ITL prFm6"),
+        # ("results/inthelarge/prGm6.json", "ITL prGm6"),
+        ("results/hospital_billing/hospital_billing_02.json", "HB"),
+        ("results/bpic12/bpic12_02.json", "BPIC12"),
+        ("results/bpic13/bpic13_02.json", "BPIC13"),
+        ("results/traffic/traffic_02.json", "TR"),
+        ("results/bpic13/bpic13_split.json", "BPIC13_SPLIT"),
+        ("results/sepsis/sepsis_split.json", "SP_SPLIT"),
+        ("results/bpic12/bpic12_split.json", "BPIC12_SPLIT"),
+        ("results/bpic17/bpic17_split.json", "BPIC17_SPLIT"),
+        ("results/hospital_billing/hospital_billing_split.json", "HB_SPLIT"),
+        ("results/traffic/traffic_split.json", "TR_SPLIT"),
     ]
-    e2_figures(dir_name_color_title_pairs_no_heuristic, "no_heuristic")
 
-    # Heuristics stage one
-    dir_name_color_title_pairs_heuristic = [
-        (CONCURRENT_RESULT_DIR, CONCURRENT_MODEL_DIR, "pink", "C"),
-        (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR,
-         CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
-        (EXCLUSIVE_RESULT_DIR, EXCLUSIVE_MODEL_DIR, "turquoise", "E"),
-        (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR,
-         EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
-        (LOOP_RESULT_DIR, LOOP_MODEL_DIR, "green", "L")
+    for res_file_path, title in res_file_path_title_pairs:
+        with open(res_file_path) as rf:
+            contents = json.load(rf)
+        sp_trans_finished_unf = []
+        sp_trans_finished_astar = []
+        sp_trans_finished_dijkstra = []
+        total_traces = 0
+
+        for entry in contents:
+            total_traces += 1
+            if entry["unf_elapsed_time"] != -1:
+                sp_trans_finished_unf.append(entry["sync_net_transitions"])
+            if entry["astar_elapsed_time"] != -1:
+                sp_trans_finished_astar.append(entry["sync_net_transitions"])
+            if entry["dijkstra_elapsed_time"] != -1:
+                sp_trans_finished_dijkstra.append(
+                    entry["sync_net_transitions"])
+        print(
+            f"unf mean sp trans finished for {title}: {sum(sp_trans_finished_unf) / len(sp_trans_finished_unf)}"
+        )
+        print(
+            f"astar mean sp trans finished for {title}: {sum(sp_trans_finished_astar) / len(sp_trans_finished_astar)}"
+        )
+        if len(sp_trans_finished_dijkstra) > 0:
+            print(
+                f"dijkstra mean sp trans finished for {title}: {sum(sp_trans_finished_dijkstra) / len(sp_trans_finished_dijkstra)}"
+            )
+
+
+if __name__ == "__main__":
+    # e3_table()
+    # paper()
+    # # No heuristics stage one
+    # dir_name_color_title_pairs_no_heuristic = [
+    #     (CONCURRENT_RESULT_DIR_NO_HEURISTIC, CONCURRENT_MODEL_DIR, "pink",
+    #      "C"),
+    #     (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR_NO_HEURISTIC,
+    #      CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
+    #     (EXCLUSIVE_RESULT_DIR_NO_HEURISTIC, EXCLUSIVE_MODEL_DIR, "turquoise",
+    #      "E"),
+    #     (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR_NO_HEURISTIC,
+    #      EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
+    #     (LOOP_RESULT_DIR_NO_HEURISTIC, LOOP_MODEL_DIR, "green", "L")
+    # ]
+    # e2_figures(dir_name_color_title_pairs_no_heuristic, "no_heuristic")
+
+    # # Heuristics stage one
+    # dir_name_color_title_pairs_heuristic = [
+    #     (CONCURRENT_RESULT_DIR, CONCURRENT_MODEL_DIR, "pink", "C"),
+    #     (CONCURRENT_CONCURRENT_NESTED_RESULT_DIR,
+    #      CONCURRENT_CONCURRENT_NESTED_MODEL_DIR, "red", "CN"),
+    #     (EXCLUSIVE_RESULT_DIR, EXCLUSIVE_MODEL_DIR, "turquoise", "E"),
+    #     (EXCLUSIVE_EXCLUSIVE_NESTED_RESULT_DIR,
+    #      EXCLUSIVE_EXCLUSIVE_NESTED_MODEL_DIR, "blue", "EN"),
+    #     (LOOP_RESULT_DIR, LOOP_MODEL_DIR, "green", "L")
+    # ]
+    # e2_figures(dir_name_color_title_pairs_heuristic, "heuristic")
+    # e3_figures()
+
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0],
+               marker='o',
+               color='w',
+               label='C',
+               markerfacecolor='pink',
+               markersize=fontsize),
+        Line2D([0], [0],
+               marker='o',
+               color='w',
+               label='CN',
+               markerfacecolor='red',
+               markersize=fontsize),
+        Line2D([0], [0],
+               marker='o',
+               color='w',
+               label='E',
+               markerfacecolor='turquoise',
+               markersize=fontsize),
+        Line2D([0], [0],
+               marker='o',
+               color='w',
+               label='EN',
+               markerfacecolor='blue',
+               markersize=fontsize),
+        Line2D([0], [0],
+               marker='o',
+               color='w',
+               label='L',
+               markerfacecolor='green',
+               markersize=fontsize),
     ]
-    e2_figures(dir_name_color_title_pairs_heuristic, "heuristic")
+
+    fig = plt.figure(figsize=(13.5, 1.5))
+    fig.legend(handles=legend_elements,
+               loc='lower left',
+               fontsize=fontsize,
+               ncols=len(legend_elements))
+    fig.savefig("figures/stage_one/legend.png")
+    plt.show()
+
+    res_file_path_color_title_pairs = [
+        ("results/sepsis/sepsis_05.json", "#2f4f4f", "SP"),
+        ("results/bpic17/bpic17_02.json", "#2e8b57", "BPIC17"),
+        ("results/bpic19/bpic19_02.json", "#8b0000", "BPIC19"),
+        ("results/inthelarge/prAm6.json", "#808000", "ITL prAm6"),
+        ("results/inthelarge/prBm6.json", "#000080", "ITL prBm6"),
+        ("results/inthelarge/prCm6.json", "#ff0000", "ITL prCm6"),
+        ("results/inthelarge/prDm6.json", "#ffa500", "ITL prDm6"),
+        ("results/inthelarge/prEm6.json", "#7cfc00", "ITL prEm6"),
+        ("results/inthelarge/prFm6.json", "#ba55d3", "ITL prFm6"),
+        # ("results/inthelarge/prGm6.json", "#00ffff", "ITL prGm6"),
+        ("results/hospital_billing/hospital_billing_02.json", "#0000ff", "HB"),
+        ("results/bpic12/bpic12_02.json", "#f08080", "BPIC12"),
+        ("results/bpic13/bpic13_02.json", "#1e90ff", "BPIC13"),
+        ("results/traffic/traffic_02.json", "#ffff54", "TR"),
+        ("results/bpic13/bpic13_split.json", "#dda0dd", "BPIC13_SPLIT"),
+        ("results/sepsis/sepsis_split.json", "#ff1493", "SP_SPLIT"),
+        ("results/bpic12/bpic12_split.json", "#f5deb3", "BPIC12_SPLIT"),
+        ("results/bpic17/bpic17_split.json", "#98fb98", "BPIC17_SPLIT"),
+        ("results/hospital_billing/hospital_billing_split.json", "#87cefa",
+         "HB_SPLIT"),
+        ("results/traffic/traffic_split.json", "#000000", "TR_SPLIT"),
+    ]
+    legend_elements = []
+    for _, color, label in res_file_path_color_title_pairs:
+        legend_elements.append(
+            Line2D([0], [0],
+                   marker='o',
+                   color='w',
+                   label=label,
+                   markerfacecolor=color,
+                   markersize=fontsize))
+    fig = plt.figure(figsize=(46, 2))
+    fig.legend(handles=legend_elements,
+               loc='lower left',
+               fontsize=fontsize,
+               ncol=(len(legend_elements) + 1) / 2)
+    fig.savefig("figures/stage_two/legend.png")
+    plt.show()
